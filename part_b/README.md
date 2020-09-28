@@ -1,4 +1,4 @@
-This section explains the packet flow between frontend and backend pods which are both on the same Kubernetes node.
+**This section explains the packet flow between frontend and backend pods which are both on the same Kubernetes node.**
 
 
 # 4. SCENARIO 1 - Phase 1 - Frontend to Service
