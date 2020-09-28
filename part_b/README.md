@@ -3,7 +3,7 @@
 This section explains the packet flow between frontend and backend pods, which are both on the same Kubernetes node, in four different phases.
 
 
-# 4. SCENARIO 1 - Phase 1 - Frontend to Service
+# 4. Phase 1 - Frontend to Service
 
 The flow that will be explained in this section is shown below.
 
@@ -349,7 +349,7 @@ vmware@worker1:~$
 
 Next phase is the flow being sent from backendsvc service to one of the backend pods backing that service and the processing of that flow is explained in the next section. 
 
-# 5. SCENARIO 1 - Phase 2 - Service to Backend Pod 
+# 5. Phase 2 - Service to Backend Pod 
 
 In this section the assumption is in Section 4.8, kube-proxy driven NAT rules in iptables translated the backendsvc service IP to the backend1 pod' s IP (which is local to Worker 1 node) to service the request that came from the frontend pod in the previous section. The other scenario, in which iptables translates the flow to backend2 pod IP, will be explained in Section Scenario 2 Phase2.
 
@@ -823,7 +823,7 @@ The logic of "reg0=-0x10000/0x10000" in the flow entry is that the first 0x10000
 0 0 0 0 0 0 0 1   0 0 0 0 0 0 0 0   0 0 0 0 0 0 0 0
 </code></pre>
 
-# 6. SCENARIO 1 - Phase 3 - Backend Pod to Service 
+# 6. Phase 3 - Backend Pod to Service 
 
 In this section the response from backend1 pod to the frontend pod will be explained. However the title above says "backend pod to service traffic" ? Why ? 
 
@@ -1322,7 +1322,7 @@ vmware@worker1:~$
 
 Next phase is the flow being sent from backendsvc service to the frontend pod and the processing of that flow is explained in the next section. 
 
-# 7. SCENARIO 1 - Phase 4 - Service to Frontend
+# 7. Phase 4 - Service to Frontend
 
 In this section the response from backendsvc service to the frontend pod will be explained. 
 
