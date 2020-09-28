@@ -1,4 +1,4 @@
-# 4. SCENARIO 1 - Phase 1 - Frontend Pod to Service
+# 4. SCENARIO 1 - Phase 1 - Frontend to Service
 
 The flow that will be explained in this section is shown below.
 
