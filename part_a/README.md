@@ -1,3 +1,7 @@
+# Part A
+
+This section provides a high level overview of Antrea implementation and the details on the test environment.
+
 # 1. Antrea Implementation in a Worker Node
 
 The high level architecture diagram is shown below. 
