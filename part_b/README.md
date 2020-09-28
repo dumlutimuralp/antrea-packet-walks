@@ -1317,7 +1317,7 @@ vmware@worker1:~$
 
 Next phase is the flow being sent from backendsvc service to the frontend pod and the processing of that flow is explained in the next section. 
 
-# 7. SCENARIO 1 - Phase 4 - Service to Frontend Pod
+# 7. SCENARIO 1 - Phase 4 - Service to Frontend
 
 In this section the response from backendsvc service to the frontend pod will be explained. 
 
