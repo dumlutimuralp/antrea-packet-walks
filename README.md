@@ -4,7 +4,7 @@ This article explains the step by step packet walks for a simple application flo
 
 ## [Part A](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_a/README.md)
 
-1. Antrea Implementation in a Worker Node
+1. [Antrea Implementation in a Worker Node](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_a/README.md#1-antrea-implementation-in-a-worker-node)
 2. OVS Pipeline
 3. Test Environment
 
