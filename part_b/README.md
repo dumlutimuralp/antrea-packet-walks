@@ -361,7 +361,7 @@ Next phase is the flow being sent from backendsvc service to one of the backend 
 
 # 5. Phase 2 - Service to Backend Pod 
 
-In this section the assumption is in Section 4.8, kube-proxy driven NAT rules in iptables translated the backendsvc service IP to the backend1 pod' s IP (which is local to Worker 1 node) to service the request that came from the frontend pod in the previous section. The other scenario, in which iptables translates the flow to backend2 pod IP, will be explained in Section Scenario 2 Phase2.
+The assumption at this stage is, in the previous, kube-proxy managed NAT rules in iptables translated the backendsvc service IP to the backend1 pod' s IP (which is local to Worker 1 node) to service the request that came from the frontend pod in the previous section. The other scenario, in which iptables translates the flow to backend2 pod IP, will be explained in [Part C](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_c).
 
 To elaborate a bit further, the flow that will be explained in this section is shown below.
 
@@ -377,6 +377,8 @@ At this stage, the current flow has the following values in the Ethernet and IP 
 - Destination MAC = f2:32:d8:07:e2:a6 (backend1 Pod MAC) 
 
 This flow will be matched against a flow entry in each OVS Table, processed top to bottom in each individual table, based on the priority value of the flow entry in the table.
+
+**Note :** Notice that not only the destination IP but also the source and destination MAC addresses also have changed per basic routing principle.
 
 ## 5.1 Classifier Table #0
 
