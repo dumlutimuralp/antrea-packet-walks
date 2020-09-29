@@ -143,6 +143,8 @@ The fourth action in the flow entry is handing the flow over to the next table w
 
 **Note 2:** About the first action mentioned in the flow entry above, since the destination MAC in this flow is already the MAC address of the antrea-gw0 interface (cause frontend pod' s default gateway is gw0 interface IP) this rewrite action actually does not make any sense in this environment. Apparently this functionality was developed for a different use case and still exists but it actually does not affect anything. There is a PR for this which can be read [here](https://github.com/vmware-tanzu/antrea/issues/1264).
 
+**Note 3:** The Service CIDR range (10.96.0.0/12) is aligned to the kubeadm default service cidr range. If a specific range is used in "--service-cluster-ip-range" for kube-apiserver then the "serviceCIDR" variable in antrea configmap should also be configured with the same range so that the respective flow entry in Table 40 gets configured with the correct range.
+
 
 ## 4.6 ConnTrackCommit Table #105
 
@@ -156,19 +158,19 @@ vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ov
 vmware@master:~$ 
 </code></pre>
 
-This table is for committing all the new flows for tracking them. This action is specifically explained as "Commit the connection to the connection tracking module which will be stored beyond the lifetime of packet in the pipeline." [in OVS docs](https://docs.openvswitch.org/en/latest/tutorials/ovs-conntrack/).
+This table is for committing all the new flows for tracking them. This action, ct(commit,), is specifically explained as "Commit the connection to the connection tracking module which will be stored beyond the lifetime of packet in the pipeline." [in OVS docs](https://docs.openvswitch.org/en/latest/tutorials/ovs-conntrack/).
 
-The first flow entry checks whether if the flow is a new flow (+new) and if it is a tracked flow (+trk). The same flow entry also checks if the flow is coming from the gateway interface. This is represented by reg0=0x1/0xffff. Explanation of this is as following. The second part "0xffff" instructs OVS to verify the first 16 bits in reg0, meaning reg0[0..15] and then the first part "0x1" means the result of that check should be "1". So it basically checks reg0[0..15]. The Reg0[0..15] is set in Classifier Table 10 and it is set to "1" if the flow comes from antrea-gw0 interface. However this flow is not coming from the gateway interface, it is coming from a local pod interface (frontend pod interface on OVS) 
+The first flow entry checks whether if the flow is a new flow (+new) and if it is a tracked flow (+trk). The same flow entry also checks if the flow is coming from the gateway interface. This is represented by reg0=0x1/0xffff. Explanation of this is as following. The second part "0xffff" instructs OVS to verify the first 16 bits in reg0, meaning reg0[0..15] and then the first part "0x1" means the result of that check should be "1". So it basically checks reg0[0..15]. The Reg0[0..15] is set by Classifier Table 10 and it is set to "1" if the flow comes from antrea-gw0 interface. However this flow is not coming from the gateway interface, it is coming from a local pod interface (frontend pod interface on OVS).  
 
 The second flow entry checks whether if the flow is a new flow (+new) and if it is a tracked flow (+trk). The action for this flow entry is committing this tracked flow to conntrack table (actions=ct(commit,..)) and then handing the flow over to the next table (,table=110).
 
-In this case the current flow matches this <b>second</b> flow entry. It is a new flow from frontend pod to backendsvc service and it is being tracked (previously from Conntrack Table 30). Hence the current flow is committed to conntrack table (actions=ct(commit,..)) and then it is handed over to the next table (,table=110). So next stop is Table 110. 
+In this case the current flow matches this <b>second</b> flow entry. It is a new flow from frontend pod to backendsvc service and it is being tracked (previously from Conntrack Table 30 and 31). Hence the current flow is committed to conntrack table (actions=ct(commit,..)) and then it is handed over to the next table (,table=110). So next stop is Table 110. 
 
 ## 4.7 L2ForwardingOut Table #110
 
 Table 110 on Worker 1 node is shown below.
 
-This table' s job is simple. First flow entry in this table first reads the value in register reg0[16]. The reg0[16] was set to "1" back in DNAT Table (Table 40) . "1" means the destination MAC address in the current flow is known to OVS and the flow should be able to get forwarded. (otherwise it would get dropped) The same flow entry has an action defined as "actions=output:NXM_NX_REG1[]". What this action does is it reads the value in "NXM_NX_REG1" to see which OF port is the output port for this flow. The value of REG1 was set to "2" back in DNAT Table 40. "2" is the OF Port ID of antrea-gw0 interface. Hence the OVS sends this flow onwards to the antrea-gw0 interface (as the output port on the OVS).
+This table' s job is simple. First flow entry in this table first reads the value in register reg0[16]. If the value of this register is "1" in decimal, that means the destination MAC address is known to OVS and the flow should be able to get forwarded (otherwise it would get dropped). The same flow entry has an action defined as "actions=output:NXM_NX_REG1[]". What this action does is it reads the value in "NXM_NX_REG1" to determine the OF port this flow will be sent through and then sends the flow onwards to that port.
 
 <pre><code>
 vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ovs -- ovs-ofctl dump-flows br-int table=110 --no-stats
@@ -177,9 +179,11 @@ vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ov
 vmware@master:~$
 </code></pre>
 
+The current flow' s reg0[16] bit was set to "0x1" (1 in decimal)  back in DNAT Table 40. and also the value of REG1 was set to "0x2" (2 in decimal) back in DNAT Table 40. "2" is the OF Port ID of antrea-gw0 interface. Hence the current flow is sent to onwards to the antrea-gw0 by OVS.
+
 **Note :** The second flow entry in this table obviously drops the flows which do not have their "reg0[16]" register set.
 
-The logic of "reg0=-0x10000/0x10000" in the flow entry is that the first 0x10000 is the desired value of thie register. The second 0x10000 is the exact instructions on which specific bit(s) should be verified to match the desired value. Since "0x" is hexadecimal, below is a detailed explanation of the position of the bit that is verified. 
+The logic of "reg0=-0x10000/0x10000" in the flow entry is that the first 0x10000 is the desired value of this register. The second 0x10000 is the exact instructions on which specific bit(s) should be verified to match the desired value. Since "0x" is hexadecimal, below is a detailed explanation of the position of the bit that is verified. 
 
 <pre><code>
 23            16  15            8   7             0
