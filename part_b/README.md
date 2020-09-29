@@ -755,19 +755,21 @@ vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ov
 vmware@master:~$ 
 </code></pre>
 
-One thing to emphasize here again is this table includes the ingress rules of all the Kubernetes Network Policies applied to any of the pods on Worker 1 node (not only the ingress rules configured on "backendpolicy" and applied to backend pods) However the focus in this section is on the flow entries which correspond to the ingress rules of the Kubernetes Network Policy "backendpolicy".
+One thing to emphasize here again is this table includes the ingress rules of all the Kubernetes Network Policies applied to all of the pods on Worker 1 node (not only the ingress rules configured on "backendpolicy" and applied to backend1 pod) However the focus in this section is on the flow entries which correspond to the ingress rules of the Kubernetes Network Policy "backendpolicy".
 
-The first flow entry checks whether if the flow is an already established flow (-new,+est); if it is then there is no need to process the flow against network policy, since Kubernetes Network Policy is STATEFUL by nature. However the current flow is a NEW flow hence it does NOT match this first flow entry. 
+The first flow entry checks whether if the flow is an already established flow (-new,+est); if it is then there is no need to process the flow against the remaining flow entries, since Kubernetes Network Policy is STATEFUL by nature. However the current flow is a NEW flow hence it does NOT match this first flow entry. 
 
-The second flow entry matches on the source IP of 10.222.1.1 (antrea-gw0 IP). The same flow entry has an action of handing the flow over to Table 105. this flow entry is used for kubelet process to be able to probe local pods. More info can be found [here](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/). However the current flow' s source IP is not 10.222.1.1, antrea-gw0 IP.
+The second flow entry matches on the source IP of 10.222.1.1 (antrea-gw0 IP). The same flow entry has an action of handing the flow over to Table 105. This flow entry is used by the kubelet process on the node to probe local pods. More info can be found [here](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/). However the current flow' s source IP is not 10.222.1.1.
 
 The third flow entry matches on source IP of 10.222.1.48 (frontend pod IP). The same flow entry has a conjunction action with a conjunction id of "3".
 
-The fourth flow entry matches on destination protocol and port which is TCP 80. The same flow entry has a conjunction action with a conjunction id of "3" and "4". Conjunction 4 is not the focus of this section since it addresses a different type of flow. 
+The fourth flow entry matches on destination protocol and port which is TCP 80. The same flow entry has a conjunction action with a conjunction id of "3" and "4". 
 
-The fifth flow entry matches on the OF port id where the flow will be delivered to (reg1=0x30), which is represented as 0x30 in hexadecimal. 0x30 corresponds to 48 in decimal, which is the OF port that the backend pod is connected to. This is an additional check that ingress table implements in addition to source IP check. The same flow entry has a conjunction action with a conjunction id of "3".
+**NOTE:** Conjunction 4 is not the focus of this section since it addresses the ingress traffic to the "frontend pod" which is not relevant here. 
 
-<b>So conjunction 3 is fully implemented by third, fourth and fifth flow entries.</b> Conjunction 3 checks if the source IP is 10.222.1.48 and then if the destination is TCP 80 and then if the destination OF port id is "48". This corresponds to TCP 80 specific rule in the ingress section of the Kubernetes Network Policy named as "backendpolicy".
+The fifth flow entry matches on the OF port id where the flow will be delivered to (reg1=0x30). 0x30 corresponds to 48 in decimal, which is the OF port that the backend pod is connected to. This is an additional check (verifying the OF port ID of the receiver) that the ingress table implements in addition to source IP check. The same flow entry has a conjunction action with a conjunction id of "3".
+
+<b>So conjunction 3 is fully implemented by third, fourth and fifth flow entries.</b> Conjunction 3 checks if the source IP is 10.222.1.48 and then if the destination is TCP 80 and then if the destination OF port id is "48". This actually corresponds to TCP 80 specific rule in the ingress section of the Kubernetes Network Policy named as "backendpolicy".
 
 The eighth flow entry defines two actions for conjunction 3 as soon as all fields of conjunction 3 (which is explained above with third, fourth and fifth flow entries) is matched. First action is to set the register NXM_NX_REG6 with the conjunction id of "3" (0x3). The second action in the same flow entry is to hand the flow over to the next table which is Table 105. (resubmit(,105))
 
@@ -777,7 +779,7 @@ The eighth flow entry defines two actions for conjunction 3 as soon as all field
 
 For reference, remaining flow entries are explained below : 
 
-Last flow entry in Table 90 defines that if the flow does not match any of the above entries then the flow will be handed over to Table 100 which is IngressDefaultTable. (resubmit(,100)) Table 100 is for isolation rules. Basically when a network policy is applied to a pod, the flows which do not match any of the allowed ingress flows in Table 90 will be dropped by Table 100.
+Last flow entry in Table 90 defines that if the flow does not match any of the above entries then the flow will be handed over to Table 100 which is IngressDefaultTable (resubmit(,100)). Table 100 is for isolation rules. Basically when a network policy is applied to a pod, the flows which do not match any of the allowed ingress flows in Table 90 will be dropped by Table 100.
 
 For reference, IngressDefault table on Worker 1 can be seen below. As the current flow has matched conjunction 3, Table 100 will be bypassed as the current flow is allowed in Table 90 by Kubernetes Network Policy applied to backend pod. 
 
@@ -793,7 +795,7 @@ vmware@master:~$
 
 Reason there are two source IPs in two different flow entries here is, there is an ingress rule used in two different Kubernetes Network Policies; one is "frontendpolicy" applied to frontend pod, the other is "backendpolicy" applied to backend pods. Each of the first two flow entries in this table applies to the respective pod running on Worker 1 node. 
 
-The last flow entry in Table 100 basically hands over all the flows (which did not match any of the conjunctions in Table 90 or the drop flow entries in Table 100) to the next table, table 105. 
+The last flow entry in Table 100 basically hands over all the flows, which did not match any of the conjunctions in Table 90 or the drop flow entries in Table 100, to the next table - Table 105. 
 
 ## 5.10 ConntrackCommit Table #105
 
@@ -813,17 +815,22 @@ The first flow entry checks whether if the flow is a new flow (+new) and if it i
 
 The second flow entry checks whether if the flow is a new flow (+new) and if it is a tracked flow (+trk). The action for this flow entry is committing this tracked flow to conntrack table (actions=ct(commit,..)) and then handing the flow over to the next table (,table=110).
 
-The current flow is a NEW and TRACKED flow and additionally it is coming from the gateway interface hence its reg0[0..15] was already set to "1" earlier in Table 10 (Section 5.1). So the current flow matches the first flow entry in Table 105. The actions in the first flow entry is to commit this tracked flow to conntrack table and hand it over to Table 110 (actions=ct(commit,table=110..)) and also set the NXM_NX_CT_MARK[] register to 0x20 (load:0x20) . The next stop is Table 110.
+The current flow is a NEW and TRACKED flow and additionally it is coming from the gateway interface hence its reg0[0..15] was already set to "1" earlier in Table 10 (Section 5.1). <b>So the current flow matches the first flow entry in Table 105</b>. The actions in the first flow entry are as following :
 
-**Note :** NSM_NX_CT_MARK register is used at a later stage for identifying the response from the backend1 pod and take the appropriate action on that return traffic. The reason is backend1 pod' s response to the current flow will have to be steered back to antrea-gw0 interface for ip tables NAT rule processing. (Section 6.4) Why ? Because this flow has come from the backendsvc service (from iptables processing) and will be delivered to the backend1 pod (although the source IP is frontend pod IP and destination IP is backend1 pod IP).
+- to commit this tracked flow to conntrack table and hand it over to Table 110 (actions=ct(commit,table=110..)) 
+- set the NXM_NX_CT_MARK[] register to 0x20 (load:0x20)
+
+The next stop is Table 110.
+
+**Note :** <b>NSM_NX_CT_MARK register is used at a later stage for identifying the response from the backend1 pod and take the appropriate action on that return traffic.</b> The reason is backend1 pod' s response to the current flow will have to be steered back to antrea-gw0 interface for ip tables NAT rule processing. (will be explained in Section 6.4) Why ? Because the current flow has come from the backendsvc service (from iptables processing) and will be delivered to the backend1 pod; however the actual source IP of the current flow is frontend pod IP and destination IP is backend1 pod IP.
 
 ## 5.11 L2ForwardingOut Table #110
 
 Table 110 on Worker 1 node is shown below.
 
-This table' s job is simple. First flow entry in this table first reads the value in register reg0[16]. The reg0[16] was set to "1" back in L2ForwardingCalc Table #80 . "1" means the destination MAC address in the current flow is known to OVS. And then the same flow entry reads the value in "NXM_NX_REG1" to see which OF port is the output port for this flow. 
+This table' s job is simple. First flow entry in this table first reads the value in register reg0[16]. If the value of this register is "1" in decimal, that means the destination MAC address is known to OVS and the flow should be able to get forwarded (otherwise it would get dropped). The same flow entry has an action defined as "actions=output:NXM_NX_REG1[]". What this action does is it reads the value in "NXM_NX_REG1" to determine the OF port this flow will be sent through and then sends the flow onwards to that port.
 
-The value of REG1  was set to "0x30" (which is "48" in decimal) back in L2ForwardingCalc Table #80. "48" is the OF Port ID of backend1 pod interface. Hence the OVS sends this flow onwards to the backend1 pod on OF port 48.
+This table' s job is simple. First flow entry in this table first reads the value in register reg0[16]. The reg0[16] was set to "1" back in L2ForwardingCalc Table #80 . "1" means the destination MAC address in the current flow is known to OVS. And then the same flow entry reads the value in "NXM_NX_REG1" to see which OF port is the output port for this flow. 
 
 <pre><code>
 vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ovs -- ovs-ofctl dump-flows br-int table=110 --no-stats
@@ -831,6 +838,8 @@ vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ov
  cookie=0x1000000000000, table=110, priority=0 actions=drop
 vmware@master:~$
 </code></pre>
+
+<b>The value of REG1  was set to "0x30" (which is "48" in decimal) back in L2ForwardingCalc Table #80. "48" is the OF Port ID of backend1 pod interface. The value reg0[16] was set to "1" also back in L2ForwardingCalc Table #80 . Hence the OVS sends this flow onwards to the backend1 pod on OF port 48.</b>
 
 **Note :** The second flow entry in this table obviously drops the flows which do not have their "reg0[16]" register set.
 
