@@ -71,7 +71,7 @@ vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ov
 vmware@master:~$ 
 </code></pre>
 
-What this table does is verifying if the source IP and MAC of the the traffic matches the IP and MAC assigned to the Pod by Antrea CNI plugin during initial Pod wiring. It implements this check both for IP and ARP traffic.
+What this table does is verifying if the source IP and MAC of the traffic matches the IP and MAC of the Pod (which is assigned to the Pod by Antrea CNI plugin during initial Pod wiring). This check is implemented for both IP and ARP traffic.
 
 Highlighted lines in the above output are the respective ARP and IP check entries for the OF port which the frontend pod is connected to. In this instance this is an IP flow from frontend pod to backend service hence the current flow will match the second line from the bottom. Notice, in the same flow entry, once the spoofguard check is successful then the flow is handed over to Table 30 (actions=resubmit(,30)). Table 30 is the next stop.
 
@@ -414,7 +414,7 @@ vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ov
 vmware@master:~$ 
 </code></pre>
 
-What this table does is verifying if the source IP and MAC of the the traffic matches the IP and MAC assigned to the Pod by Antrea CNI plugin during initial Pod wiring. It implements this check both for IP and ARP traffic.
+What this table does is verifying if the source IP and MAC of the traffic matches the IP and MAC of the Pod (which is assigned to the Pod by Antrea CNI plugin during initial Pod wiring). This check is implemented for both IP and ARP traffic.
 
 Since the flow comes from the antrea-gw0 interface, the flow will match the <b>first</b> flow entry in this table. The source IP of the current flow, which is coming from antrea-gw0 interface, is still the frontend pod IP (requestor of the original flow), hence spoofguard does not do any checks in this instance. The only action specified in the first flow entry is handing the flow over to Table 30 (actions=goto_table:30). So next stop is Table 30.
 
@@ -927,7 +927,7 @@ vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ov
 vmware@master:~$ 
 </code></pre>
 
-What this table does is verifying if the source IP and MAC of the the traffic matches the IP and MAC assigned to the Pod by Antrea CNI plugin during initial Pod wiring. It implements this check both for IP and ARP traffic.
+What this table does is verifying if the source IP and MAC of the traffic matches the IP and MAC of the Pod (which is assigned to the Pod by Antrea CNI plugin during initial Pod wiring). This check is implemented for both IP and ARP traffic.
 
 Since the flow comes from the backend1 pod interface with backend1 pod' s IP and MAC address, the flow matches the <b>ninth</b> flow entry in this table and the spoofguard check will succeed. The only action specified in that flow entry is handing the flow over to Table 30 (actions=goto_table:30). So next stop is Table 30.
 
@@ -1403,7 +1403,7 @@ vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ov
 vmware@master:~$ 
 </code></pre>
 
-What this table does is verifying if the source IP and MAC of the the traffic matches the IP and MAC assigned to the Pod by Antrea CNI plugin during initial Pod wiring. It implements this check both for IP and ARP traffic.
+What this table does is verifying if the source IP and MAC of the traffic matches the IP and MAC of the Pod (which is assigned to the Pod by Antrea CNI plugin during initial Pod wiring). This check is implemented for both IP and ARP traffic.
 
 Since the flow came from the antrea-gw0 interface, the flow matches the <b>first</b> flow entry in this table. The source IP of the current flow, which is coming from antrea-gw0 interface, is the backend1 pod IP, hence spoofguard does not do any checks in this instance. The only action specified in the first flow entry is handing the flow over to Table 30 (actions=goto_table:30). So next stop is Table 30.
 
