@@ -8,14 +8,14 @@ This article explains the step by step packet walks for a given application flow
 - [OVS Pipeline](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_a/README.md#2-ovs-pipeline)
 - [Test Environment](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_a/README.md#3-test-environment)
 
-## [PART B - Within the same node](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_b/README.md)
+## [PART B - Flow within the same node](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_b/README.md)
 
 - [Phase 1 Frontend to Service](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_b/README.md#4-phase-1---frontend-to-service)
 - [Phase 2 Service to Backend Pod](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_b/README.md#5-phase-2---service-to-backend-pod)
 - [Phase 3 Backend Pod to Service](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_b/README.md#6-phase-3---backend-pod-to-service)
 - [Phase 4 Service to Frontend](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_b/README.md#7-phase-4---service-to-frontend)
 
-## [PART C - Across Nodes](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_c/README.md)
+## [PART C - Flow across Nodes](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_c/README.md)
 
 - [Phase 1 Frontend to Service](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_c#8-phase-1---frontend-pod-to-service)
 - [Phase 2 Service to Backend Pod](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_c#9-phase-2---service-to-backend-pod)
