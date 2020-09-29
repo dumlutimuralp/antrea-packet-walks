@@ -378,7 +378,7 @@ At this stage, the current flow has the following values in the Ethernet and IP 
 
 This flow will be matched against a flow entry in each OVS Table, processed top to bottom in each individual table, based on the priority value of the flow entry in the table.
 
-**Note :** Notice that not only the destination IP but also the source and destination MAC addresses also have changed per basic routing principle.
+**Note :** Notice that not only the destination IP but also the source and destination MAC addresses also have changed (from the previous phase - Section 4)
 
 ## 5.1 Classifier Table #0
 
