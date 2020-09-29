@@ -617,8 +617,6 @@ The last flow entry in Table 60 basically hands over all the flows (which did no
 
 ## 9.7 L3Forwarding Table #70
 
-This is the actual routing table implemented in OVS. 
-
 The Table 70 on Worker 1 node is shown below.
 
 <pre><code>
@@ -841,10 +839,6 @@ vmware@master:~$
 The current flow is from frontend pod to backend2 pod. The source IP in the current flow is frontend pod IP (10.222.1.48) . Hence it will match the last entry in this table. The last entry has a single action which is handing the flow over to Table 70 (resubmit(,70)) . Hence nextstop is Table 70.
 
 ### 9.11.6 L3Forwarding Table #70
-
-Table 70 on Worker 2 node is shown below.
-
-This is the actual routing table implemented in OVS. 
 
 The Table 70 on Worker 2 node is shown below.
 
