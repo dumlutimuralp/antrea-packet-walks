@@ -1,5 +1,9 @@
+# PART C
 
-# 8. SCENARIO 2 - Phase 1 - Frontend Pod to Service
+This section explains the packet flow between frontend and backend pods, which are on different Kubernetes nodes, in four different phases.
+
+
+# 8. Phase 1 - Frontend Pod to Service
 
 The flow that will be explained in this section is shown below.
 
@@ -345,7 +349,7 @@ vmware@worker1:~$
 
 Next phase is the flow being sent from backendsvc service to one of the backend pods backing that service and the processing of that flow is explained in the next section. 
 
-# 9. SCENARIO 2 - Phase 2 - Service to Backend Pod 
+# 9. Phase 2 - Service to Backend Pod 
 
 In this section the assumption is that, in the previous phase, kube-proxy driven NAT rules in iptables translated the backendsvc service IP to the backend2 pod' s IP (which is on Worker 2 node) to service the request that came from the frontend pod in the previous section. 
 
@@ -904,6 +908,6 @@ Just to emphasize once more, as a result of the actions mentioned in above bulle
 **Note :** In the OVS Pipeline diagram at Antrea Project' s Github repo, there are tables 85-89 before Table 90. However those tables are in use only when ClusterNetworkPolicy (CNP) feature of Antrea is used. In this Antrea environment, CNP is not used. 
 
 
-# 10. SCENARIO 2 - Phase 3 - Backend Pod to Service
+# 10. Phase 3 - Backend Pod to Service
 
-# 11. SCENARIO 2 - Phase 4 - Service to Frontend Pod
+# 11. Phase 4 - Service to Frontend Pod
