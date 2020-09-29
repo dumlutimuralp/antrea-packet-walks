@@ -1,6 +1,6 @@
 # PART B 
 
-This section explains the packet flow between frontend and backend pods, which are both on the same Kubernetes node, in four phases.
+This section explains the packet flow between frontend pod and backend pod, which are both on the same Kubernetes node, in four phases.
 
 - [Phase 1 Frontend to Service](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_b/README.md#4-phase-1---frontend-to-service)
 - [Phase 2 Service to Backend Pod](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_b/README.md#5-phase-2---service-to-backend-pod)
@@ -15,7 +15,7 @@ The flow that will be explained in this section is shown below.
 
 ![](2020-09-16-17-49-42.png)
 
-Basically this flow is frontend pod accessing the backendsvc service on TCP port 80. Backendsvc service is backed by backend1 and backend2 pod, as shown in kubectl outputs in [Part A section 3.2](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_a#32-test-application).
+Basically this flow is frontend pod accessing the backendsvc service on TCP port 80. Backendsvc service is backed by backend1 and backend2 pods, as shown in kubectl outputs in [Part A Section 3.2](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_a#32-test-application).
 
 At this stage, the current flow has the following values in the Ethernet and IP headers.
 
@@ -24,7 +24,7 @@ At this stage, the current flow has the following values in the Ethernet and IP 
 - Source MAC = be:2c:bf:e4:ec:c5 (Frontend pod MAC)
 - Destination MAC = 4e:99:08:c1:53:be (antrea-gw0 interface MAC on Worker 1)
 
-This flow will be matched against a flow entry in each OVS Table, processed top to bottom in each individual table, based on the priority value of the flow entry in the table.
+This flow will be matched against the flow entries in each OVS Table, processed top to bottom in each individual table, based on the priority value of the flow entry in the table.
 
 ## 4.1 Classifier Table #0
 
@@ -42,7 +42,7 @@ vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ov
 vmware@master:~$
 </code></pre>
 
-This table is to classify the traffic by matching it on the ingress port and then setting the register NXM_NX_REG0[0..15] bits as following; "0" for tunnel, "1" for local gateway and "2" for local pod.  The current flow in this scenario, which is initiated from frontend pod and comes to OVS on the frontend pod interface, matches the <b>sixth</b> flow entry in the above output (which is highlighted). First action in this flow entry is to set the value of the register reg0[0..15] to "0x2", which means flow comes from a local pod. Second action in the same flow entry is to hand over the flow to next table which is Table 10. (resubmit(,10))  
+This table is to classify the traffic by matching it on the ingress port and then setting the register NXM_NX_REG0[0..15] bits as following; "0" for tunnel, "1" for local gateway and "2" for local pod.  The current flow in this scenario is initiated by frontend pod and OVS receives it on the frontend pod interface, hence this flow matches the <b>sixth</b> flow entry in the above output (which is highlighted). First action in this flow entry is to set the value of the register reg0[0..15] to "0x2", which means flow comes from a local pod. Second action in the same flow entry is to hand the flow over to the next table which is Table 10. (resubmit(,10))  
 
 So next stop is Table 10.
 
