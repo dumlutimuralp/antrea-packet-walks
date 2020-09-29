@@ -15,7 +15,7 @@ The flow that will be explained in this section is shown below.
 
 ![](2020-09-16-17-49-42.png)
 
-Basically this flow is frontend pod accessing the backendsvc service on TCP port 80. Backendsvc service is backed by backend1 and backend2 pod, as shown in kubectl outputs in section 3.2.
+Basically this flow is frontend pod accessing the backendsvc service on TCP port 80. Backendsvc service is backed by backend1 and backend2 pod, as shown in kubectl outputs in [Part A section 3.2](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_a#32-test-application).
 
 At this stage, the current flow has the following values in the Ethernet and IP headers.
 
