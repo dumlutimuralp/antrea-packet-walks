@@ -71,7 +71,7 @@ vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ov
 vmware@master:~$ 
 </code></pre>
 
-What this table does is verifying if the source IP and MAC of the the traffic matches the IP and MAC assigned to the Pod by Antrea CNI plugin during initial Pod wiring. It implements this check both for IP and ARP traffic.
+What this table does is verifying if the source IP and MAC of the the traffic matches the IP and MAC assigned to the Pod by Antrea CNI plugin during initial Pod connectivity. It implements this check both for IP and ARP traffic.
 
 Highlighted lines in the above output are the respective ARP and IP check entries for the OF port which the frontend pod is connected to. In this instance this is an IP flow from frontend pod to backend service hence the current flow will match the second line from the bottom. Notice, in the same flow entry, once the spoofguard check is successful then the flow is handed over to Table 30 (actions=resubmit(,30)). Table 30 is the next stop.
 
@@ -160,11 +160,11 @@ vmware@master:~$
 
 This table is for committing all the new flows for tracking them. This action, ct(commit,), is specifically explained as "Commit the connection to the connection tracking module which will be stored beyond the lifetime of packet in the pipeline." [in OVS docs](https://docs.openvswitch.org/en/latest/tutorials/ovs-conntrack/).
 
-The first flow entry checks whether if the flow is a new flow (+new) and if it is a tracked flow (+trk). The same flow entry also checks if the flow is coming from the gateway interface. This is represented by reg0=0x1/0xffff. Explanation of this is as following. The second part "0xffff" instructs OVS to verify the first 16 bits in reg0, meaning reg0[0..15] and then the first part "0x1" means the result of that check should be "1". So it basically checks reg0[0..15]. The Reg0[0..15] is set by Classifier Table 10 and it is set to "1" if the flow comes from antrea-gw0 interface. However this flow is not coming from the gateway interface, it is coming from a local pod interface (frontend pod interface on OVS).  
+The first flow entry checks whether if the flow is a new flow (+new) and if it is a tracked flow (+trk). The same flow entry also checks if the flow is coming from the gateway interface. This is represented by reg0=0x1/0xffff. Explanation of this is as following. The second part "0xffff" instructs OVS to verify the first 16 bits in reg0, meaning reg0[0..15] and then the first part "0x1" means the result of that check should be "1". So it basically checks reg0[0..15]. The Reg0[0..15] is set by Classifier Table 10 and it is set to "1" if the flow comes from antrea-gw0 interface. 
 
-The second flow entry checks whether if the flow is a new flow (+new) and if it is a tracked flow (+trk). The action for this flow entry is committing this tracked flow to conntrack table (actions=ct(commit,..)) and then handing the flow over to the next table (,table=110).
+The second flow entry checks whether if the flow is a new flow (+new) and if it is a tracked flow (+trk). 
 
-In this case the current flow matches this <b>second</b> flow entry. It is a new flow from frontend pod to backendsvc service and it is being tracked (previously from Conntrack Table 30 and 31). Hence the current flow is committed to conntrack table (actions=ct(commit,..)) and then it is handed over to the next table (,table=110). So next stop is Table 110. 
+In this case the current flow matches this <b>second</b> flow entry. It is not coming from the gateway interface; it is coming from a local pod interface (frontend pod interface on OVS).   It is a new flow from frontend pod to backendsvc service and it is being tracked (previously from Conntrack Table 30 and 31). Hence the current flow is committed to conntrack table (actions=ct(commit,..)) and then it is handed over to the next table (,table=110). So next stop is Table 110. 
 
 ## 4.7 L2ForwardingOut Table #110
 
@@ -372,7 +372,7 @@ To elaborate a bit further, the flow that will be explained in this section is s
 
 Basically this flow is the service to backend1 pod communication. In Section 4.8 the kube-proxy managed iptables NAT rule DNATed backendsvc IP (10.104.65.133) to backend1 pod IP (10.222.1.47). 
 
-At this stage, the current flow has the following values in the Ethernet and IP headers.
+At this stage, the current flow come backs to OVS on the antrea-gw0 port (right after it got processed by iptables rules) and it has the following values in the Ethernet and IP headers.
 
 - Source IP = 10.222.1.48 (frontend pod IP)
 - Destination IP = 10.222.1.47 (backend1 pod IP)
@@ -382,6 +382,25 @@ At this stage, the current flow has the following values in the Ethernet and IP 
 This flow will be matched against a flow entry in each OVS Table, processed top to bottom in each individual table, based on the priority value of the flow entry in the table.
 
 **Note :** Notice that not only the destination IP but also the source and destination MAC addresses also have changed (from the previous phase - Section 4).
+
+To verify the Ethernet and IP headers of the flow, a quick tcpdump on the antrea-gw0 interface of the Worker 1 node  would reveal the source and destination IP/MAC of this flow. It is shown below.
+
+<pre><code>
+vmware@master:~$ k exec -it frontend -- sh
+Praqma Network MultiTool (with NGINX) - backend1 - 10.222.1.47/24
+</code></pre>
+
+while performing curl on frontend pod (as shown above), then in another ssh session to the Kubernetes Worker 1 node :
+
+<pre><code>
+vmware@worker1:~$ sudo tcpdump -en -i antrea-gw0 host 10.222.1.47
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on antrea-gw0, link-type EN10MB (Ethernet), capture size 262144 bytes
+21:37:41.789071 <b>4e:99:08:c1:53:be > f2:32:d8:07:e2:a6</b>, ethertype IPv4 (0x0800), length 74: <b>10.222.1.48.53128 > 10.222.1.47.80</b>: Flags [S], seq 1929465462, win 64860, options [mss 1410,sackOK,TS val 3904428111 ecr 0,nop,wscale 7], length 0
+<b>OUTPUT OMITTED</b>
+</code></pre>
+
+**Note 1:** For simplicity, the ARP requests/replies between antrea-gw0, frontend pod and backend1 pod are not shown in the above output. 
 
 ## 5.1 Classifier Table #0
 
@@ -423,7 +442,7 @@ vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ov
 vmware@master:~$ 
 </code></pre>
 
-What this table does is verifying if the source IP and MAC of the the traffic matches the IP and MAC assigned to the Pod by Antrea CNI plugin during initial Pod wiring. It implements this check both for IP and ARP traffic.
+What this table does is verifying if the source IP and MAC of the the traffic matches the IP and MAC assigned to the Pod by Antrea CNI plugin during initial Pod connectivity. It implements this check both for IP and ARP traffic.
 
 Since the flow comes from the antrea-gw0 interface, the flow will match the <b>first</b> flow entry in this table. The source IP of the current flow, which is coming from antrea-gw0 interface, is still the frontend pod IP (requestor of the original flow), hence spoofguard does not do any checks in this instance. The only action specified in the first flow entry is handing the flow over to Table 30 (actions=goto_table:30). So next stop is Table 30.
 
@@ -816,7 +835,7 @@ This table is for committing all the new flows for tracking them. This action is
 
 The first flow entry checks whether if the flow is a new flow (+new) and if it is a tracked flow (+trk). The same flow entry also checks if the flow is coming from the gateway interface. This is represented by reg0=0x1/0xffff. Explanation of this is as following. The second part "0xffff" instructs OVS to verify the first 16 bits in reg0, meaning reg0[0..15] and then the first part "0x1" means the result of that check should be "1". So it basically checks reg0[0..15]. The Reg0[0..15] is set in Classifier Table 10 and it is set to "1" if the flow comes from antrea-gw0 interface. 
 
-The second flow entry checks whether if the flow is a new flow (+new) and if it is a tracked flow (+trk). The action for this flow entry is committing this tracked flow to conntrack table (actions=ct(commit,..)) and then handing the flow over to the next table (,table=110).
+The second flow entry checks whether if the flow is a new flow (+new) and if it is a tracked flow (+trk). 
 
 The current flow is a NEW and TRACKED flow and additionally it is coming from the gateway interface hence its reg0[0..15] was already set to "1" earlier in Table 10 (Section 5.1). <b>So the current flow matches the first flow entry in Table 105</b>. The actions in the first flow entry are as following :
 
@@ -832,8 +851,6 @@ The next stop is Table 110.
 Table 110 on Worker 1 node is shown below.
 
 This table' s job is simple. First flow entry in this table first reads the value in register reg0[16]. If the value of this register is "1" in decimal, that means the destination MAC address is known to OVS and the flow should be able to get forwarded (otherwise it would get dropped). The same flow entry has an action defined as "actions=output:NXM_NX_REG1[]". What this action does is it reads the value in "NXM_NX_REG1" to determine the OF port this flow will be sent through and then sends the flow onwards to that port.
-
-This table' s job is simple. First flow entry in this table first reads the value in register reg0[16]. The reg0[16] was set to "1" back in L2ForwardingCalc Table #80 . "1" means the destination MAC address in the current flow is known to OVS. And then the same flow entry reads the value in "NXM_NX_REG1" to see which OF port is the output port for this flow. 
 
 <pre><code>
 vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ovs -- ovs-ofctl dump-flows br-int table=110 --no-stats
@@ -859,22 +876,17 @@ So bit 16 must be "1", and that is being verified in "reg0". The first four bits
 
 In this section the response from backend1 pod to the frontend pod will be explained. However the title above says "backend pod to service traffic" ? Why ? 
 
-The flow which made its way to the backend1 pod (in Section 5) had the source IP of frontend pod (10.222.1.48) and destination IP of backend1 pod (10.222.1.47). Hence backend1 pod will reply to frontend pod with its own IP (10.222.1.47) which is expected by any TCP/IP based communication. It is also way easier for OVS to deliver the traffic to frontend pod that way.  **But this would break the communication in the wider context.** The reason is when the frontend pod had initiated the connection (in Section 4) the source IP of the flow was frontend pod IP but the destination IP was backendsvc service IP (10.104.65.133). This destination service IP got DNATed by iptables to the destination IP of backend1 pod (10.222.1.47) Section 4.8.  From frontend pod' s point of view it is communicating with backendsvc service IP. Because of this; return flow from backend1 pod to frontend pod should be SNATed now by iptables again and be delivered to the frontend pod with the IP of the backendsvc service IP as the source IP. Hence OVS needs to steer the return flow from backend1 pod to frontend pod to the Worker 1 Node' s Kernel IP Stack for iptables processing.
+The flow which made its way to the backend1 pod (in Section 5) had the source IP of frontend pod (10.222.1.48) and destination IP of backend1 pod (10.222.1.47). Hence backend1 pod will reply to frontend pod with its own IP (10.222.1.47) which is expected by any TCP/IP based communication. OVS could easily deliver the response to frontend pod directly.  **But this would break the communication.** The reason is when the frontend pod had initiated the connection (in Section 4) the source IP of the flow was frontend pod IP but the destination IP was backendsvc service IP (10.104.65.133). This destination service IP got DNATed by iptables to the destination IP of backend1 pod (10.222.1.47) in Section 4.8.  From frontend pod' s point of view it is communicating with backendsvc service IP. Because of this; return flow from backend1 pod to frontend pod should be **SNATed** now by iptables and be delivered to the frontend pod with the IP of the backendsvc service IP as the source IP. Hence OVS needs to steer the return flow from backend1 pod to frontend pod to the Worker 1 node' s Kernel IP Stack for iptables processing.
 
-To verify how backend1 pod responds to requests from the frontend pod, a quick tcpdump on the backend1 pod would reveal the source and destination IP/MAC of this communication. It is shown below.
+To verify how backend1 pod responds to requests from the frontend pod, a quick tcpdump on the backend1 pod would reveal the source and destination IP/MAC of this flow. It is shown below.
 
 <pre><code>
 vmware@master:~$ k exec -it frontend -- sh
-/ # while true; do curl backendsvc; echo; sleep 0.5; done
-Praqma Network MultiTool (with NGINX) - backend2 - 10.222.2.34/24
-Praqma Network MultiTool (with NGINX) - backend2 - 10.222.2.34/24
-Praqma Network MultiTool (with NGINX) - backend2 - 10.222.2.34/24
-Praqma Network MultiTool (with NGINX) - backend1 - 10.222.1.47/24
-Praqma Network MultiTool (with NGINX) - backend1 - 10.222.1.47/24
+/ # curl backendsvc
 Praqma Network MultiTool (with NGINX) - backend1 - 10.222.1.47/24
 </code></pre>
 
-Then in another ssh session to the Kubernetes master node :
+while performing curl on frontend pod (as shown above), in another ssh session to the Kubernetes master node :
 
 <pre><code>
 vmware@master:~$ k exec -it backend1 -- sh
@@ -883,13 +895,7 @@ tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
 listening on eth0, link-type EN10MB (Ethernet), capture size 262144 bytes
 15:36:41.452668 <b>4e:99:08:c1:53:be</b> (oui Unknown) > <b>f2:32:d8:07:e2:a6</b> (oui Unknown), ethertype IPv4 (0x0800), length 74: <b>10.222.1.48.38994</b> > <b>10.222.1.47.80</b>: Flags [S], seq 811052796, win 64860, options [mss 1410,sackOK,TS val 2845949950 ecr 0,nop,wscale 7], length 0
 15:36:41.452703 <b>f2:32:d8:07:e2:a6</b> (oui Unknown) > <b>be:2c:bf:e4:ec:c5</b> (oui Unknown), ethertype IPv4 (0x0800), length 74: <b>10.222.1.47.80</b> > <b>10.222.1.48.38994</b>: Flags [S.], seq 944115724, ack 811052797, win 64308, options [mss 1410,sackOK,TS val 684640496 ecr 2845949950,nop,wscale 7], length 0
-15:36:41.453020 4e:99:08:c1:53:be (oui Unknown) > f2:32:d8:07:e2:a6 (oui Unknown), ethertype IPv4 (0x0800), length 66: 10.222.1.48.38994 > 10.222.1.47.80: Flags [.], ack 1, win 507, options [nop,nop,TS val 2845949951 ecr 684640496], length 0
-15:36:41.453150 4e:99:08:c1:53:be (oui Unknown) > f2:32:d8:07:e2:a6 (oui Unknown), ethertype IPv4 (0x0800), length 140: 10.222.1.48.38994 > 10.222.1.47.80: Flags [P.], seq 1:75, ack 1, win 507, options [nop,nop,TS val 2845949951 ecr 684640496], length 74: HTTP: GET / HTTP/1.1
-15:36:41.453165 f2:32:d8:07:e2:a6 (oui Unknown) > be:2c:bf:e4:ec:c5 (oui Unknown), ethertype IPv4 (0x0800), length 66: 10.222.1.47.80 > 10.222.1.48.38994: Flags [.], ack 75, win 502, options [nop,nop,TS val 684640496 ecr 2845949951], length 0
-15:36:41.453295 f2:32:d8:07:e2:a6 (oui Unknown) > be:2c:bf:e4:ec:c5 (oui Unknown), ethertype IPv4 (0x0800), length 302: 10.222.1.47.80 > 10.222.1.48.38994: Flags [P.], seq 1:237, ack 75, win 502, options [nop,nop,TS val 684640496 ecr 2845949951], length 236: HTTP: HTTP/1.1 200 OK
-15:36:41.453354 4e:99:08:c1:53:be (oui Unknown) > f2:32:d8:07:e2:a6 (oui Unknown), ethertype IPv4 (0x0800), length 66: 10.222.1.48.38994 > 10.222.1.47.80: Flags [.], ack 237, win 506, options [nop,nop,TS val 2845949951 ecr 684640496], length 0
-15:36:41.453374 f2:32:d8:07:e2:a6 (oui Unknown) > be:2c:bf:e4:ec:c5 (oui Unknown), ethertype IPv4 (0x0800), length 132: 10.222.1.47.80 > 10.222.1.48.38994: Flags [P.], seq 237:303, ack 75, win 502, options [nop,nop,TS val 684640496 ecr 2845949951], length 66: HTTP
-15:36:41.453443 4e:99:08:c1:53:be (oui Unknown) > f2:32:d8:07:e2:a6 (oui Unknown), ethertype IPv4 (0x0800), length 66: 10.222.1.48.38994 > 10.222.1.47.80: Flags [.], ack 303, win 506, options [nop,nop,TS val 2845949951 ecr 684640496], length 0
+<b>OUTPUT OMITTED</b>
 </code></pre>
 
 **Note 1:** For simplicity, the ARP requests/replies between antrea-gw0, frontend pod and backend1 pod are not shown in the above output. 
@@ -898,16 +904,16 @@ listening on eth0, link-type EN10MB (Ethernet), capture size 262144 bytes
 - The source and destination MAC addresses of the second line is from backend1 pod MAC to frontend pod MAC (the flow that will be explained in this section)
 - The source or destination IP addresses are always frontend pod IP and backend pod IP
 
-**Note 2:** Reason that backend1 pod populates the destination MAC address with frontend pod' s MAC (rather than antrea-gw0 MAC which the request came in with as source MAC) is that frontend pod and backend pod are on the same subnet, hence frontend pod replies to backend pod' s ARP request directly. 
+**Note 2:** Reason that backend1 pod populates the destination MAC address with frontend pod' s MAC (rather than antrea-gw0 MAC which the request came in with as source MAC) is that frontend pod and backend1 pod are on the same subnet, hence frontend pod replies to backend1 pod' s ARP request directly. So backend1 pod has the frontend pod IP/MAC in its ARP table.
 
-The response that backend1 pod has generated has the following values in the Ethernet and IP headers and this will be the flow that this section will focus on.
+The response that backend1 pod generates has the following values in the Ethernet and IP headers and this is the flow that this section focuses on.
 
 - Source IP = 10.222.1.47 (backend1 pod IP)
 - Destination IP = 10.222.1.48 (frontend pod IP)
 - Source MAC = f2:32:d8:07:e2:a6 (backend1 pod MAC)
 - Destination MAC = be:2c:bf:e4:ec:c5 (frontend pod MAC)
 
-OVS will manipulate the above flow as shown below (to make it processed by Kube-proxy managed iptables NAT rules again)
+OVS will steer this flow as shown below (to make it processed by Kube-proxy managed iptables NAT rules again)
 
 ![](2020-09-22-21-44-43.png)
 
@@ -915,7 +921,7 @@ This flow will be matched against a flow entry in each OVS Table, processed top 
 
 ## 6.1 Classifier Table #0
 
-Table #0 on Worker 1 is shown below. (again, just like in previous sections 3.5 and 3.6) 
+Table #0 on Worker 1 node is shown below. 
 
 <pre><code>
 vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ovs -- ovs-ofctl dump-flows br-int table=0 --no-stats
@@ -931,7 +937,7 @@ vmware@master:~$
 
 This table is to classify the traffic by matching it on the ingress port and then setting the register NXM_NX_REG0[0..15] bits as following; "0" for tunnel, "1" for local gateway and "2" for local pod. 
 
-The current flow came from backend1 pod interface which is the local pod hence it matches the <b>fifth</b> flow entry in the above output (which is highlighted). The first action in this flow entry is to set the register reg0[0..15] to "0x2" since the flow comes from a local pod. The second action in this flow entry is to hand over the flow to Table 10. (resubmit(,10)) Hence next stop is Table 10. 
+The current flow came from backend1 pod interface which is the local pod hence it matches the <b>fifth</b> flow entry in the above output (which is highlighted). The first action in this flow entry is to set the register reg0[0..15] to "0x2" since the flow comes from a local pod. The second action in this flow entry is to hand the flow over to Table 10 (resubmit(,10)). Hence next stop is Table 10. 
 
 ## 6.2 Spoofguard Table #10
 
@@ -953,9 +959,9 @@ vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ov
 vmware@master:~$ 
 </code></pre>
 
-What this table does is verifying if the source IP and MAC of the the traffic matches the IP and MAC assigned to the Pod by Antrea CNI plugin during initial Pod wiring. It implements this check both for IP and ARP traffic.
+What this table does is verifying if the source IP and MAC of the the traffic matches the IP and MAC assigned to the Pod by Antrea CNI plugin during initial Pod connectivity. It implements this check both for IP and ARP traffic.
 
-Since the flow comes from the backend1 pod interface with backend1 pod' s IP and MAC address, the flow matches the <b>ninth</b> flow entry in this table and the spoofguard check will succeed. The only action specified in that flow entry is handing the flow over to Table 30 (actions=goto_table:30). So next stop is Table 30.
+Since the flow comes from the backend1 pod interface with backend1 pod' s IP and MAC address, the flow matches the <b>ninth</b> flow entry in this table and the spoofguard check will succeed. The only action specified in the ninth flow entry is handing the flow over to Table 30 (actions=goto_table:30). So next stop is Table 30.
 
 ## 6.3 ConntrackTable Table #30
 
@@ -986,17 +992,17 @@ vmware@master:~$
 
 ConntrackState table processes all the flows that are in tracked state (basically which were handed over by the Conntrack table 30). 
 
-The first flow entry implements three checks. First is if the flow is not new and tracked ("ct_state=-new means not new, +trk means being tracked) . Second is if the flow's "ct_mark" field is set to "0x20". Third is if the flow comes from antrea-gw0 interface. (by checking the reg0[0..15] register of the flow to see if it is set to "0x1" which is "1" in decimal, representing local gateway, as explained earlier) 
+The first flow entry implements three checks. First check is if the flow is not new and tracked ("ct_state=-new means not new, +trk means being tracked) . Second check is if the flow's "ct_mark" field is set to "0x20". Third check is if the flow comes from antrea-gw0 interface. (by checking the reg0[0..15] register of the flow to see if it is set to "0x1" which is "1" in decimal, representing local gateway, as explained back in Table 0) 
 
 The second flow entry checks whether if the flow is not new and tracked ("ct_state=-new means not new, +trk means being tracked). It also checks if the flow's "ct_mark" field is set to "0x20". 
 
 The third flow entry checks if the flow is INVALID but TRACKED, basically it drops all these types of flows.
 
-The current flow from backend1 pod to frontend pod is NOT NEW, it is the response to the flow explained in the previous Section 5. The current flow is also a TRACKED flow, so its "ct_state" is "-new+trk". The "ct_mark" field of the current flow was set to "0x20" as explained back in section 5.10 (when the request from frontend pod to service to backend1 pod communication was processed by Table 105 previously in Phase 2) 
+The current flow from backend1 pod to frontend pod is NOT NEW, it is the response to the flow explained in Section 5. The current flow is also a TRACKED flow, so its "ct_state" is "-new+trk". The "ct_mark" field of the current flow was set to "0x20" as explained back in section 5.10 (when the request from frontend pod to service to backend1 pod communication was processed by Table 105 previously in Phase 2) 
 
-Hence the current flow will match all the conditions in the second flow entry in the flow table highlighted above. There are two actions specified in that second flow entry. First action is to set the destination MAC to "4e:99:08:c1:53:be" which is the antrea-gw0 MAC on the Worker 1node. (by 0x4e9908c153be->NXM_OF_ETH_DST[]) The second action in the same flow entry is handing the flow over to the next table which is table 40 (resubmit(,40). So next stop is Table 40.
+Hence the current flow will match all the conditions in the second flow entry in the flow table highlighted above. There are two actions specified in that second flow entry. First action is to set the destination MAC to "4e:99:08:c1:53:be" which is the antrea-gw0 MAC on the Worker 1 node. (by 0x4e9908c153be->NXM_OF_ETH_DST[]) The second action in the same flow entry is handing the flow over to the next table which is table 40 (resubmit(,40). So next stop is Table 40.
 
-**Note :** The reason for the destination MAC rewrite (from original destination MAC of frontend pod to new destination MAC of gw0 MAC) is to steer the flow back to Linux Kernel IP stack for the flow to be processed Kube-proxy managed iptables NAT rules again. (similar to the way back in 4.8 but this time it will be SNAT, not DNAT. It is explained in upcoming Section 6.12.)
+**Note :** The reason for the destination MAC rewrite (from original destination MAC of frontend pod to new destination MAC of gw0 MAC) is to steer the flow back to Linux Kernel IP stack for the flow to be processed kube-proxy managed iptables NAT rules again. (similar to the way back in 4.8 but this time it will be SNAT, not DNAT. Since the frontend pod should receive the response from backendsvc service IP)
 
 ## 6.5 DNAT Table #40
 
@@ -1044,11 +1050,7 @@ The current flow is actually the response of backend1 pod to frontend pod as par
 
 Hence the current flow will match the first flow entry in this table ("ct_state=-new+est"). The action specified in this first flow entry is handing the flow over to Table 70. (actions=resubmit(,70)) So next stop is Table 70. 
 
-**Note :** Notice that EgressDefault Table #60 is bypassed in this case since the flow is handed over to Table 70 as part of an already established flow.
-
 ## 6.7 L3Forwarding Table #70
-
-This is the actual routing table implemented in OVS. 
 
 The Table 70 on Worker 1 node is shown below.
 
@@ -1067,12 +1069,12 @@ vmware@master:~$
 
 Basically each flow entry in this flow table checks either the destination IP address or destination MAC address (in some entries both) to make a forwarding decision. 
 
-The current flow' s source and destination MAC and IP address values are still as they are shown back in section 3.5 Phase 2. Shown below again. 
+The current flow' s source and destination MAC and IP address values are still as they are shown back at the beginning of this section. (with a slight change) Shown below again. 
 
 - Source IP = 10.222.1.47 (backend1 pod IP)
 - Destination IP = 10.222.1.48 (frontend pod IP)
 - Source MAC = f2:32:d8:07:e2:a6 (backend1 Pod MAC)
-- Destination MAC =  4e:99:08:c1:53:be (antrea-gw0 MAC on Worker 1) (destination MAC was be:2c:bf:e4:ec:c5 at the beginning of Section 6 but it got rewritten to the antrea-gw0 MAC on Worker 1 , back in Section 6.4)
+- Destination MAC =  4e:99:08:c1:53:be (antrea-gw0 MAC on Worker 1) (destination MAC was be:2c:bf:e4:ec:c5 at the beginning of this section but it got rewritten to the antrea-gw0 MAC on Worker 1 node, back in Section 6.4)
 
 Based on the current flow' s source and destination MAC/IP values, the current flow matches the last flow entry in Table 70 (since the prior flow entries match against a different destination MAC). The destination IP and MAC is local to Worker 1 node and clearly there is no routing or L3 forwarding needed. The action in the last flow entry is "resubmit(,80)" which basically hands over the flow to Table 80. Hence next stop is Table 80.
 
@@ -1093,17 +1095,17 @@ vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ov
 vmware@master:~$ 
 </code></pre>
 
-What this table does is not that different than a typical IEEE 802.1d transparent bridge. This is basically the MAC address table of the OVS. Based on the destination MAC address of the flow OVS decides on which egress port (OF Port) the flow should be sent to. 
+What this table does is not that different than a typical IEEE 802.1d transparent bridge. This is basically the MAC address table of the OVS. Based on the destination MAC address of the flow OVS decides which OF Port the flow should be sent to. 
 
-Two registers, both of which mentioned in earlier sections, are used in each flow entry in this table. 
+Each flow entry in this table sets two registers, both of which mentioned in earlier sections, will be explained here once again. 
 
-- Reg1 is used to store the egress OF port ID of the flow, which will be used later on in Table 110 (L2ForwardingOut Table).
+- Reg1 is used to store OF port ID of the flow (the OVS port which the flow should be sent to). This register is set with the respective OF port ID based on the destination MAC address of the flow. This register which stores the OF port ID will be used later on in Table 110 (L2ForwardingOut Table).
 - Reg0[16] is used and it is set to "1" to indicate that the given flow has a matching destination address in this table, which is known to OVS, and it should be forwarded. 
 
-The current flow matches the first flow entry in Table 80 (since the flow' s destination MAC address is 4e:99:08:c1:53:be). The actions in the first flow entry are as following : 
+The current flow matches the first flow entry in (since the flow' s destination MAC address is 4e:99:08:c1:53:be). The actions in the first flow entry are as following : 
 
-- set the reg1 register to Hex : 0x2. 0x2 in hexadecimal corresponds to [2 x (16 to the power of 0) = 2. And "2" is the OF port id of antrea-gw0 interface on the OVS. (which can be verified in [Part A Section 3.4](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_a#34-identifying-ovs-port-ids-of-port-ids) Worker 1 output). 
-- set the reg0[16] register to "1" (Hex : 0x1) . 
+- set the reg1 register to Hex : 0x2. 0x2 in hexadecimal corresponds to [2 x (16 to the power of 0)] = 2. And "2" is the OF port id of antrea-gw0 interface on the OVS. (which can be verified in [Part A Section 3.4](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_a#34-identifying-ovs-port-ids-of-port-ids) Worker 1 output)
+- set the reg0[16] register to "1" (Hex : 0x1)  
 - hand over the flow to Table 90 by "resubmit(,90)"
 
 Hence next stop is Table 90.
@@ -1135,9 +1137,7 @@ This table consists of the corresponding flow entries of the ingress rules that 
 
 The current flow is actually the response of backend1 pod to frontend pod as part of the previous request from frontend pod (the flow which is explained in previous section 5); because of this reason the current flow is not NEW and it is part of an already ESTABLISHED flow.
 
-Hence the current flow will match the first flow entry in this table ("ct_state=-new+est"). The action specified in this first flow entry is handing over the flow to Table 105. (actions=resubmit(,105)) So next stop is Table 105. 
-
-**Note :** Notice that IngressDefault Table #100 is bypassed in this case since the flow is handed over to Table 105 as part of an already established flow.
+Hence the current flow will match the first flow entry in this table ("ct_state=-new+est"). The action specified in this first flow entry is handing the flow over to Table 105 (actions=resubmit(,105)). So next stop is Table 105. 
 
 ## 6.10 ConntrackCommit Table #105
 
@@ -1155,7 +1155,7 @@ This table is for committing all the new flows for tracking them. This action is
 
 The first flow entry checks whether if the flow is a new flow (+new) and if it is a tracked flow (+trk). The same flow entry also checks if the flow is coming from the gateway interface. This is represented by reg0=0x1/0xffff. Explanation of this is as following. The second part "0xffff" instructs OVS to verify the first 16 bits in reg0, meaning reg0[0..15] and then the first part "0x1" means the result of that check should be "1". So it basically checks reg0[0..15]. The Reg0[0..15] is set in Classifier Table 10 and it is set to "1" if the flow comes from antrea-gw0 interface. 
 
-The second flow entry checks whether if the flow is a new flow (+new) and if it is a tracked flow (+trk). The action for this flow entry is committing this tracked flow to conntrack table (actions=ct(commit,..)) and then handing the flow over to the next table (,table=110).
+The second flow entry checks whether if the flow is a new flow (+new) and if it is a tracked flow (+trk). 
 
 The current flow does **NOT** match the first nor the second flow entry in this table. Because the current flow is the response of backend1 pod, hence it is part of an already established flow hence it matches the last entry in this table. The action in the last flow entry is specified as "resubmit(,110)" which basically is handing the flow over to the Table 110. So next stop is Table 110.
 
@@ -1163,9 +1163,7 @@ The current flow does **NOT** match the first nor the second flow entry in this 
 
 Table 110 on Worker 1 node is shown below.
 
-This table' s job is simple. First flow entry in this table first reads the value in register reg0[16]. The reg0[16] was set to "1" back in L2ForwardingCalc Table #80 . "1" means the destination MAC address in the current flow is known to OVS. And then the same flow entry reads the value in "NXM_NX_REG1" to see which OF port is the output port for this flow. 
-
-The value of REG1  was set to "0x2" (which is "2" in decimal) back in L2ForwardingCalc Table #80. "2" is the OF Port ID of antrea-gw0 interface. Hence the OVS sends this flow onwards to the antrea-gw0 interface on the Worker 1 node.
+This table' s job is simple. First flow entry in this table first reads the value in register reg0[16]. If the value of this register is "1" in decimal, that means the destination MAC address is known to OVS and the flow should be able to get forwarded (otherwise it would get dropped). The same flow entry has an action defined as "actions=output:NXM_NX_REG1[]". What this action does is it reads the value in "NXM_NX_REG1" to determine the OF port this flow will be sent through and then sends the flow onwards to that port.
 
 <pre><code>
 vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ovs -- ovs-ofctl dump-flows br-int table=110 --no-stats
@@ -1173,6 +1171,8 @@ vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ov
  cookie=0x1000000000000, table=110, priority=0 actions=drop
 vmware@master:~$
 </code></pre>
+
+The reg0[16] was set to "1" back in L2ForwardingCalc Table #80. The value of REG1  was set to "0x2" (which is "2" in decimal) also back in L2ForwardingCalc Table #80. "2" is the OF Port ID of antrea-gw0 interface.  Hence the OVS sends this flow onwards to the antrea-gw0 interface on the Worker 1 node.
 
 **Note :** The second flow entry in this table obviously drops all the other flows which do not have their "reg0[16]" register set.
 
@@ -1429,7 +1429,7 @@ vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ov
 vmware@master:~$ 
 </code></pre>
 
-What this table does is verifying if the source IP and MAC of the the traffic matches the IP and MAC assigned to the Pod by Antrea CNI plugin during initial Pod wiring. It implements this check both for IP and ARP traffic.
+What this table does is verifying if the source IP and MAC of the the traffic matches the IP and MAC assigned to the Pod by Antrea CNI plugin during initial Pod connectivity. It implements this check both for IP and ARP traffic.
 
 Since the flow came from the antrea-gw0 interface, the flow matches the <b>first</b> flow entry in this table. The source IP of the current flow, which is coming from antrea-gw0 interface, is the backend1 pod IP, hence spoofguard does not do any checks in this instance. The only action specified in the first flow entry is handing the flow over to Table 30 (actions=goto_table:30). So next stop is Table 30.
 
