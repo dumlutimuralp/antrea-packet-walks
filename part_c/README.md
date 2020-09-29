@@ -127,16 +127,17 @@ As shown above, 10.104.65.133 falls into the service CIDR range <b>hence the cur
 
 The first action specified in the flow entry is rewriting the destination mac of the flow with "4e:99:08:c1:53:be" (mod_dl_dst:4e:99:08:c1:53:be); which is the MAC address of the gw0 (antrea-gw0) interface of the Worker 1 node. 
 
-The second action specified in the flow entry is to set the "NXM_NX_REG1" bit to "0x2" (by load:0x2 in hex, which is 2 in decimal). This register represents the egress OF Port ID of the flow. (ie which OF port should be the output port for this flow) And "2" is the OF Port ID for the antrea-gw0. The outputs and diagrams shown in Section 3.4 can be reviewed again to see OF Port ID.
+The second action specified in the flow entry is to set the "NXM_NX_REG1" bit to "0x2" (by load:0x2 in hex, which is 2 in decimal). This register represents the egress OF Port ID of the flow. (ie through which OF port this flow will be sent) And "2" is the OF Port ID for the antrea-gw0. The outputs and diagrams shown in [Part A Section 3.4](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_a#34-identifying-ovs-port-ids-of-port-ids) can be reviewed again to see OF Port ID.
 
 The third action specified in the flow entry is setting the "NXM_NX_REG0[16]" to "1" (by load:0x1). This value in Reg0[16] means that OVS knows the destination MAC address. In other words this MAC address exists in OVS MAC address table (Table 80), which is explained in a seperate section. 
 
-The fourth action in the flow entry is handing the flow over to the next table (resubmit(,105)) which is table 105. (resubmit(,105)) Next stop for this flow is Table 105.
+The fourth action in the flow entry is handing the flow over to the next table which is table 105 (resubmit(,105)). Next stop for this flow is Table 105.
 
-**Note 1:** The flow is handed over to Table #105 and Egress tables (related to network policies), which are Table 45-49 and 50, are just bypassed, why ? Will be explained in a seperate section.
+**Note 1:** The flow is handed over to Table #105 and Egress tables (related to network policies), which are Table 45-49 and 50, are just bypassed, why ? Will be explained in an upcoming section.
 
-**Note 2:** About the first action mentioned in the flow entry above, since the destination MAC in this flow is already the MAC address of the antrea-gw0 interface (cause frontend pod' s gateway is gw0 interface IP) this rewrite action actually does not make any sense in this environment. Apparently this functionality was developed for a different use case and still exists but it actually does not affect anything. There is a PR for this which can be read [here](https://github.com/vmware-tanzu/antrea/issues/1264).
+**Note 2:** About the first action mentioned in the flow entry above, since the destination MAC in this flow is already the MAC address of the antrea-gw0 interface (cause frontend pod' s default gateway is gw0 interface IP) this rewrite action actually does not make any sense in this environment. Apparently this functionality was developed for a different use case and still exists but it actually does not affect anything. There is a PR for this which can be read [here](https://github.com/vmware-tanzu/antrea/issues/1264).
 
+**Note 3:** The Service CIDR range (10.96.0.0/12) is aligned to the kubeadm default service cidr range. If a specific range is used in "--service-cluster-ip-range" for kube-apiserver then the "serviceCIDR" variable in antrea configmap should also be configured with the same range so that the respective flow entry in Table 40 gets configured with the correct range.
 
 ## 8.6 ConnTrackCommit Table #105
 
@@ -162,7 +163,7 @@ In this case the current flow matches this <b>second</b> flow entry. It is a new
 
 Table 110 on Worker 1 node is shown below.
 
-This table' s job is simple. First flow entry in this table first reads the value in register reg0[16]. The reg0[16] was set to "1" back in DNAT Table (Table 40) . "1" means the destination MAC address in the current flow is known to OVS and the flow should be able to get forwarded. (otherwise it would get dropped) The same flow entry has an action defined as "actions=output:NXM_NX_REG1[]". What this action does is it reads the value in "NXM_NX_REG1" to see which OF port is the output port for this flow. The value of REG1 was set to "2" back in DNAT Table 40. "2" is the OF Port ID of antrea-gw0 interface. Hence the OVS sends this flow onwards to the antrea-gw0 interface (as the output port on the OVS).
+This table' s job is simple. First flow entry in this table first reads the value in register reg0[16]. If the value of this register is "1" in decimal, that means the destination MAC address is known to OVS and the flow should be able to get forwarded (otherwise it would get dropped). The same flow entry has an action defined as "actions=output:NXM_NX_REG1[]". What this action does is it reads the value in "NXM_NX_REG1" to determine the OF port this flow will be sent through and then sends the flow onwards to that port.
 
 <pre><code>
 vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ovs -- ovs-ofctl dump-flows br-int table=110 --no-stats
@@ -171,9 +172,11 @@ vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ov
 vmware@master:~$
 </code></pre>
 
+The current flow' s reg0[16] bit was set to "0x1" (1 in decimal)  back in DNAT Table 40. and also the value of REG1 was set to "0x2" (2 in decimal) back in DNAT Table 40. "2" is the OF Port ID of antrea-gw0 interface. Hence the current flow is sent to onwards to the antrea-gw0 by OVS.
+
 **Note :** The second flow entry in this table obviously drops the flows which do not have their "reg0[16]" register set.
 
-The logic of "reg0=-0x10000/0x10000" in the flow entry is that the first 0x10000 is the desired value of thie register. The second 0x10000 is the exact instructions on which specific bit(s) should be verified to match the desired value. Since "0x" is hexadecimal, below is a detailed explanation of the position of the bit that is verified. 
+The logic of "reg0=-0x10000/0x10000" in the flow entry is that the first 0x10000 is the desired value of this register. The second 0x10000 is the exact instructions on which specific bit(s) should be verified to match the desired value. Since "0x" is hexadecimal, below is a detailed explanation of the position of the bit that is verified. 
 
 <pre><code>
 23            16  15            8   7             0
