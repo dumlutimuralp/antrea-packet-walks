@@ -133,7 +133,7 @@ As shown above, 10.104.65.133 falls into the service CIDR range <b>hence the cur
 
 The first action specified in the flow entry is rewriting the destination mac of the flow with "4e:99:08:c1:53:be" (mod_dl_dst:4e:99:08:c1:53:be); which is the MAC address of the gw0 (antrea-gw0) interface of the Worker 1 node. 
 
-The second action specified in the flow entry is to set the "NXM_NX_REG1" bit to "0x2" (by load:0x2 in hex, which is 2 in decimal). This register represents the egress OF Port ID of the flow. (ie which OF port should be the output port for this flow) And "2" is the OF Port ID for the antrea-gw0. The outputs and diagrams shown in Section 3.4 can be reviewed again to see OF Port ID.
+The second action specified in the flow entry is to set the "NXM_NX_REG1" bit to "0x2" (by load:0x2 in hex, which is 2 in decimal). This register represents the egress OF Port ID of the flow. (ie which OF port should be the output port for this flow) And "2" is the OF Port ID for the antrea-gw0. The outputs and diagrams shown in [Part A Section 3.4](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_a#34-identifying-ovs-port-ids-of-port-ids) can be reviewed again to see OF Port ID.
 
 The third action specified in the flow entry is setting the "NXM_NX_REG0[16]" to "1" (by load:0x1). This value in Reg0[16] means that OVS knows the destination MAC address. In other words this MAC address exists in OVS MAC address table (Table 80), which is explained in a seperate section. 
 
@@ -668,7 +668,7 @@ Two registers, both of which mentioned in earlier sections, are used in each flo
 
 As seen in the highlighted flow entry above in the table, for the current flow, which has a destination MAC address of f2:32:d8:07:e2:a6 (the MAC of backend1 pod) matches this fourth flow entry. The actions in the fourth flow entry are as following : 
 
-- set the reg1 register to "0x30".  0x30 in hexadecimal corresponds to [3 x (16 to the power of 1) + 0 x (16 to the power of 0)] = 48. And "48" is the OF port id of backend1 pod on the OVS. (which can be verified in 3.4 Worker 1 OVS Port output and Section 6 Phase 2 diagram). 
+- set the reg1 register to "0x30".  0x30 in hexadecimal corresponds to [3 x (16 to the power of 1) + 0 x (16 to the power of 0)] = 48. And "48" is the OF port id of backend1 pod on the OVS. (which can be verified in [Part A Section 3.4](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_a#34-identifying-ovs-port-ids-of-port-ids) Worker 1 OVS Port output). 
 - set the reg0[16] register to "1" (Hex : 0x1) . 
 - hand over the flow to Table 90 by "resubmit(,90)"
 
@@ -1076,7 +1076,7 @@ Two registers, both of which mentioned in earlier sections, are used in each flo
 
 The current flow matches the first flow entry in Table 80 (since the flow' s destination MAC address is 4e:99:08:c1:53:be). The actions in the first flow entry are as following : 
 
-- set the reg1 register to Hex : 0x2. 0x2 in hexadecimal corresponds to [2 x (16 to the power of 0) = 2. And "2" is the OF port id of antrea-gw0 interface on the OVS. (which can be verified in section 3.4 Worker 1 output and also in section 5. Phase 2 diagram). 
+- set the reg1 register to Hex : 0x2. 0x2 in hexadecimal corresponds to [2 x (16 to the power of 0) = 2. And "2" is the OF port id of antrea-gw0 interface on the OVS. (which can be verified in [Part A Section 3.4](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_a#34-identifying-ovs-port-ids-of-port-ids) Worker 1 output and also in section 5. Phase 2 diagram). 
 - set the reg0[16] register to "1" (Hex : 0x1) . 
 - hand over the flow to Table 90 by "resubmit(,90)"
 
@@ -1544,7 +1544,7 @@ Two registers, both of which mentioned in earlier sections, are used in each flo
 
 As seen in the highlighted flow entry above in the table, the current flow has a destination MAC address of be:2c:bf:e4:ec:c5 (the MAC address of frontend pod) hence it matches the **fifth** flow entry in the table. The actions specified in the fifth flow entry are as following : 
 
-- set the reg1 register to "0x31".  0x31 in hexadecimal corresponds to [3 x (16 to the power of 1) + 1 x (16 to the power of 0)] = 49. And "49" is the OF port id of frontend pod on the OVS. (which can be verified in section 3.4 Worker 1 output and also section 6 Phase 2 diagram). 
+- set the reg1 register to "0x31".  0x31 in hexadecimal corresponds to [3 x (16 to the power of 1) + 1 x (16 to the power of 0)] = 49. And "49" is the OF port id of frontend pod on the OVS. (which can be verified in [Part A Section 3.4](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_a#34-identifying-ovs-port-ids-of-port-ids) Worker 1 output and also section 6 Phase 2 diagram). 
 - set the reg0[16] register to "1" (Hex : 0x1) . 
 - hand the flow over to Table 90 by "resubmit(,90)"
 
