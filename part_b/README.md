@@ -15,7 +15,7 @@ The flow that will be explained in this section is shown below.
 
 ![](2020-09-16-17-49-42.png)
 
-Basically this flow is frontend pod accessing the backendsvc service on TCP port 80. Backendsvc service is backed by backend1 and backend2 pods, as shown in kubectl outputs in [Part A Section 3.2](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_a#32-test-application).
+This flow comes to OVS on the frontend pod port. Basically this flow is frontend pod accessing the backendsvc service on TCP port 80. Backendsvc service is backed by backend1 and backend2 pods, as shown in kubectl outputs in [Part A Section 3.2](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_a#32-test-application).
 
 At this stage, the current flow has the following values in the Ethernet and IP headers.
 
@@ -366,11 +366,11 @@ Next phase is the flow being sent from backendsvc service to one of the backend 
 
 The assumption at this stage is, in the previous, kube-proxy managed NAT rules in iptables translated the backendsvc service IP to the backend1 pod' s IP (which is local to Worker 1 node) to service the request that came from the frontend pod in the previous section. The other scenario, in which iptables translates the flow to backend2 pod IP, will be explained in [Part C](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_c).
 
-To elaborate a bit further, the flow that will be explained in this section is shown below.
+To elaborate a bit further, the flow that will be explained in this section is shown below. 
 
 ![](2020-09-21-18-05-57.png)
 
-Basically this flow is the service to backend1 pod communication. In Section 4.8 the kube-proxy managed iptables NAT rule DNATed backendsvc IP (10.104.65.133) to backend1 pod IP (10.222.1.47). 
+This flow comes to OVS on antrea-gw0 port. Basically this flow is the service to backend1 pod communication. In Section 4.8 the kube-proxy managed iptables NAT rule DNATed backendsvc IP (10.104.65.133) to backend1 pod IP (10.222.1.47). 
 
 At this stage, the current flow come backs to OVS on the antrea-gw0 port (right after it got processed by iptables rules) and it has the following values in the Ethernet and IP headers.
 
@@ -913,7 +913,7 @@ The response that backend1 pod generates has the following values in the Etherne
 - Source MAC = f2:32:d8:07:e2:a6 (backend1 pod MAC)
 - Destination MAC = be:2c:bf:e4:ec:c5 (frontend pod MAC)
 
-OVS will steer this flow as shown below (to make it processed by Kube-proxy managed iptables NAT rules again)
+This flow will come to OVS on backend1 pod port. OVS will steer this flow as shown below (to make it processed by Kube-proxy managed iptables NAT rules again)
 
 ![](2020-09-22-21-44-43.png)
 
