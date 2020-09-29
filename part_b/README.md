@@ -179,7 +179,7 @@ vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ov
 vmware@master:~$
 </code></pre>
 
-The current flow' s reg0[16] bit was set to "0x1" (1 in decimal)  back in DNAT Table 40. and also the value of REG1 was set to "0x2" (2 in decimal) back in DNAT Table 40. "2" is the OF Port ID of antrea-gw0 interface. Hence the current flow is sent to onwards to the antrea-gw0 by OVS.
+The current flow' s reg0[16] bit was set to "0x1" (1 in decimal)  back in DNAT Table 40 and also the value of REG1 was set to "0x2" (2 in decimal) back in DNAT Table 40. "2" is the OF Port ID of antrea-gw0 interface. Hence the current flow is sent onwards to the antrea-gw0 by OVS.
 
 **Note :** The second flow entry in this table obviously drops the flows which do not have their "reg0[16]" register set.
 
@@ -192,7 +192,7 @@ The logic of "reg0=-0x10000/0x10000" in the flow entry is that the first 0x10000
 
 ## 4.8 IPTables
 
-At this stage, the Kernel IP stack of Worker 1 node receives the flow from antrea-gw0 interface and the flow will  is processed by iptables NAT rules. Iptables NAT rules on Worker 1 node are shown below.
+At this stage, the Kernel IP stack of Worker 1 node receives the flow from antrea-gw0 interface and the flow is processed by kube-proxy managed iptables NAT rules. Iptables NAT rules on Worker 1 node are shown below.
 
 Basically Kube Services chain "KUBE-SVC-EKL7ZEFK3VFJKKGJ" applies destination NAT on flows destined to backendsvc service IP and picks either backend1 or backend2 as the destination. This is typical Kube-proxy managed, iptables driven "ClusterIP" type of Kubernetes service functionality which is providing distributed load balancing for flows within a Kubernetes cluster.
 
