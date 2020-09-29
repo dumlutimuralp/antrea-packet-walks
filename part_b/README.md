@@ -1407,7 +1407,7 @@ vmware@master:~$
 
 This table is to classify the traffic by matching it on the ingress port and then setting the register NXM_NX_REG0[0..15] bits as following; "0" for tunnel, "1" for local gateway and "2" for local pod. 
 
-The current flow came to OVS on antrea-gw0 port which is the local gateway. Hence it matches the **first** flow entry in the above output (which is highlighted). The first action in this flow entry is to set the register reg0[0..15] to "0x1" since the flow came from the local gateway. The second action in the same flow entry is to hand the flow over to Table 10. (resubmit(,10)) Hence next stop is Table 10.
+The current flow came to OVS on antrea-gw0 port which is the local gateway. Hence it matches the **first** flow entry in the above output (which is highlighted). The first action in this flow entry is to set the register reg0[0..15] to "0x1" since the flow came from the local gateway. The second action in the same flow entry is to hand the flow over to Table 10 (resubmit(,10)). Hence next stop is Table 10.
 
 ## 7.2 Spoofguard Table #10
 
@@ -1464,7 +1464,7 @@ vmware@master:~$
 
 ConntrackState table processes all the flows that are in tracked state (basically which were handed over by the Conntrack table 30). The first and second flow entries shown above process the flows where the flow is NOT new AND tracked. (ct_state=-new means not new, +trk means being tracked) The third flow entry processes the flows where the respective flow is INVALID and TRACKED, basically it drops all those flows.
 
-The current flow is a tracked flow since it the continuity of the previous flow which was from frontend pod to backendsvc service (explained in Section 4) Hence the current flow is not new and it also does not have the "ct_mark" set. ("ct_mark" is used for tracking service to backend pod communication.)
+The current flow is a tracked flow since it is the continuity of the previous flow which was from frontend pod to backendsvc service (explained in Section 4) Hence the current flow is not new and it also does not have the "ct_mark" set. ("ct_mark" was used for tracking service to backend pod communication back in Section 5 and 6)
 
 Hence the flow matches the <b>last entry</b> in the flow table highlighted above. Notice the action in the same flow entry is handing the flow over to the next table which is table 40 (resubmit(,40). So next stop is Table 40.
 
@@ -1512,11 +1512,7 @@ The current flow is actually the response of backendsvc service to frontend pod 
 
 Hence the current flow will match the first flow entry in this table ("ct_state=-new+est"). The action specified in this first flow entry is handing the flow over to Table 70. (actions=resubmit(,70)) So next stop is Table 70. 
 
-**Note :** Notice that EgressDefault Table #60 is bypassed in this case since the flow is handed over to Table 70 as part of an already established flow.
-
 ## 7.7 L3Forwarding Table #70
-
-This is the actual routing table implemented in OVS. 
 
 The Table 70 on Worker 1 node is shown below.
 
@@ -1542,7 +1538,7 @@ The current flow' s source and destination MAC and IP address values are as foll
 - Source MAC = 4e:99:08:c1:53:be (antrea-gw0 interface MAC on Worker 1)
 - Destination MAC = be:2c:bf:e4:ec:c5 (frontend pod MAC)
 
-Based on the current flow' s source and destination MAC/IP values, the current flow matches the last flow entry in Table 70 (since the prior flow entries match against a different destination MAC). The destination IP and MAC is local to Worker 1 node and clearly there is no routing or L3 forwarding needed. The action in the last flow entry is "resubmit(,80)" which basically hands over the flow to Table 80. Hence next stop is Table 80.
+Based on the current flow' s source and destination MAC/IP values, the current flow matches the last flow entry in Table 70 (since the prior flow entries match against a different destination MAC). The destination IP and MAC is local to Worker 1 node and clearly there is no routing or L3 forwarding needed. The action in the last flow entry is "resubmit(,80)" which basically hands the flow over to Table 80. Hence next stop is Table 80.
 
 **Note :** The first five flow entries in this table are related to ARP processing "aa:bb:cc:dd:ee:ff" and will be explained in Section 12. The sixth and seventh flow entries in this table are for inter node flow patterns and it will be will be explained in Section 9.
 
@@ -1561,17 +1557,17 @@ vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ov
 vmware@master:~$ 
 </code></pre>
 
-What this table does is not that different than a typical IEEE 802.1d transparent bridge. This is basically the MAC address table of the OVS. Based on the destination MAC address of the flow OVS decides on which egress port (OF Port) the flow should be sent to. 
+What this table does is not that different than a typical IEEE 802.1d transparent bridge. This is basically the MAC address table of the OVS. Based on the destination MAC address of the flow OVS decides which OF Port the flow should be sent to. 
 
-Two registers, both of which mentioned in earlier sections, are used in each flow entry in this table. 
+Each flow entry in this table sets two registers, both of which mentioned in earlier sections, will be explained here once again. 
 
+- Reg1 is used to store OF port ID of the flow (the OVS port which the flow should be sent to). This register is set with the respective OF port ID based on the destination MAC address of the flow. This register which stores the OF port ID will be used later on in Table 110 (L2ForwardingOut Table).
 - Reg0[16] is used and it is set to "1" to indicate that the given flow has a matching destination address in this table, which is known to OVS, and it should be forwarded. 
-- Reg1 is used to store the egress OF port ID of the flow, which will be used later on in Table 110 (L2ForwardingOut Table).
 
 As seen in the highlighted flow entry above in the table, the current flow has a destination MAC address of be:2c:bf:e4:ec:c5 (the MAC address of frontend pod) hence it matches the **fifth** flow entry in the table. The actions specified in the fifth flow entry are as following : 
 
-- set the reg1 register to "0x31".  0x31 in hexadecimal corresponds to [3 x (16 to the power of 1) + 1 x (16 to the power of 0)] = 49. And "49" is the OF port id of frontend pod on the OVS. (which can be verified in [Part A Section 3.4](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_a#34-identifying-ovs-port-ids-of-port-ids) Worker 1 output). 
-- set the reg0[16] register to "1" (Hex : 0x1) . 
+- set the reg1 register to "0x31".  0x31 in hexadecimal corresponds to [3 x (16 to the power of 1) + 1 x (16 to the power of 0)] = 49. And "49" is the OF port id of frontend pod on the OVS. (which can be verified in [Part A Section 3.4](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_a#34-identifying-ovs-port-ids-of-port-ids) Worker 1 output) 
+- set the reg0[16] register to "1" (Hex : 0x1)  
 - hand the flow over to Table 90 by "resubmit(,90)"
 
 Hence next stop is Table 90.
@@ -1603,9 +1599,7 @@ This table consists of the corresponding flow entries of the ingress rules that 
 
 The current flow is actually the response from the backendsvc service to frontend pod as part of the previous request from frontend pod (the flow which is explained in previous section 4); because of this reason the current flow is not NEW and it is part of an already established flow.
 
-Hence the current flow will match the first flow entry in this table ("ct_state=-new+est"). The action specified in this first flow entry is handing the flow over to Table 105. (actions=resubmit(,105)) So next stop is Table 105. 
-
-**Note :** Notice that IngressDefault Table #100 is bypassed in this case since the flow is handed over to Table 105 as part of an already established flow.
+Hence the current flow will match the first flow entry in this table ("ct_state=-new+est"). The action specified in this first flow entry is handing the flow over to Table 105 (actions=resubmit(,105)). So next stop is Table 105. 
 
 ## 7.10 ConntrackCommit Table #105
 
