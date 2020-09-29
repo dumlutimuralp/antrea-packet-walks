@@ -1,6 +1,6 @@
 # PART C
 
-This section explains the packet flow between frontend and backend pods, which are on different Kubernetes nodes, in four different phases.
+This section explains the packet flow between frontend and backend pods, which are on different Kubernetes nodes, in four phases.
 
 
 # 8. Phase 1 - Frontend Pod to Service
