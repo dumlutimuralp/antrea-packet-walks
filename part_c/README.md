@@ -1,13 +1,17 @@
-# PART C
+# PART C 
 
 This section explains the packet flow between frontend and backend pods, which are on different Kubernetes nodes, in four phases.
 
+- [Phase 1 Frontend to Service]()
+- [Phase 2 Service to Backend Pod]()
+- [Phase 3 Backend Pod to Service]()
+- [Phase 4 Service to Frontend]()
 
 # 8. Phase 1 - Frontend Pod to Service
 
 The flow that will be explained in this section is shown below.
 
-![](2020-09-16-17-49-42.png)
+
 
 Basically this flow is frontend pod accessing the backendsvc service on TCP port 80. Backendsvc service is backed by backend1 and backend2 pod, as shown in kubectl outputs in section 3.2.
 
