@@ -1026,6 +1026,52 @@ First two flow entries drops all the other flows destined to the OF port 0x23 wh
 
 The last flow entry in Table 100 basically hands over all the other flows, which did not match any of the conjunctions in Table 90 or the other flow entries in Table 100, to the next table - Table 105. 
 
+### 9.11.9 ConntrackCommit Table #105
+
+Table 105 on Worker 2 node is shown below.
+
+<pre><code>
+vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-fv5x9 -c antrea-ovs -- ovs-ofctl dump-flows br-int table=105 --no-stats
+ cookie=0x1000000000000, table=105, priority=200,ct_state=+new+trk,ip,reg0=0x1/0xffff actions=ct(commit,table=110,zone=65520,exec(load:0x20->NXM_NX_CT_MARK[]))
+ cookie=0x1000000000000, table=105, priority=190,ct_state=+new+trk,ip actions=ct(commit,table=110,zone=65520)
+ cookie=0x1000000000000, table=105, priority=0 actions=resubmit(,110)
+vmware@master:~$ 
+</code></pre>
+
+This table is for committing all the new flows for tracking them. This action, ct(commit,), is specifically explained as "Commit the connection to the connection tracking module which will be stored beyond the lifetime of packet in the pipeline." [in OVS docs](https://docs.openvswitch.org/en/latest/tutorials/ovs-conntrack/).
+
+The first flow entry checks whether if the flow is a new flow (+new) and if it is a tracked flow (+trk). The same flow entry also checks if the flow is coming from the gateway interface. This is represented by reg0=0x1/0xffff. Explanation of this is as following. The second part "0xffff" instructs OVS to verify the first 16 bits in reg0, meaning reg0[0..15] and then the first part "0x1" means the result of that check should be "1". So it basically checks reg0[0..15]. The Reg0[0..15] is set by Classifier Table 10 and it is set to "1" if the flow comes from antrea-gw0 interface. 
+
+The second flow entry checks whether if the flow is a new flow (+new) and if it is a tracked flow (+trk). 
+
+In this case the current flow matches this <b>second</b> flow entry. It is not coming from the gateway interface; it is coming from the tunnel interface.   It is a new flow from frontend pod to backend2 pod and it is being tracked (previously from Conntrack Table 30 and 31). Hence the current flow is committed to conntrack table (actions=ct(commit,..)) and then it is handed over to the next table (,table=110). So next stop is Table 110. 
+
+### 9.11.10 L2ForwardingOut Table #110
+
+Table 110 on Worker 2 node is shown below.
+
+<pre><code>
+vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-fv5x9 -c antrea-ovs -- ovs-ofctl dump-flows br-int table=110 --no-stats
+ cookie=0x1000000000000, table=110, priority=200,ip,reg0=0x10000/0x10000 actions=output:NXM_NX_REG1[]
+ cookie=0x1000000000000, table=110, priority=0 actions=drop
+vmware@master:~$ 
+</code></pre>
+
+This table' s job is simple. First flow entry in this table first reads the value in register reg0[16]. If the value of this register is "1" in decimal, that means the destination MAC address is known to OVS and the flow should be able to get forwarded (otherwise it would get dropped). The same flow entry has an action defined as "actions=output:NXM_NX_REG1[]". What this action does is it reads the value in "NXM_NX_REG1" to determine the OF port this flow will be sent through and then sends the flow onwards to that port.
+
+The current flow' s reg0[16] bit was set to "0x1" (1 in decimal)  back in DNAT Table 40 and also the value of REG1 was set to "0x23" (35 in decimal) back in Table 80 in Section 9.11.7.  "35" is the OF Port ID of backend2 pod. **Hence the current flow is sent onwards to the backend2 pod.**
+
+**Note :** The second flow entry in this table obviously drops the flows which do not have their "reg0[16]" register set.
+
+The logic of "reg0=-0x10000/0x10000" in the flow entry is that the first 0x10000 is the desired value of this register. The second 0x10000 is the exact instructions on which specific bit(s) should be verified to match the desired value. Since "0x" is hexadecimal, below is a detailed explanation of the position of the bit that is verified. 
+
+<pre><code>
+23              16  15               8   7               0
+0 0 0 0 | 0 0 0 1   0 0 0 0 |  0 0 0 0   0 0 0 0 | 0 0 0 0
+</code></pre>
+
+So bit 16 must be "1", and that is being verified in "reg0". The first four bits on the left hand side is not worth to mention hence the desired value and actual value are both shown as "0x10000". 
+
 # 10. Phase 3 - Backend Pod to Service
 
 # 11. Phase 4 - Service to Frontend Pod
