@@ -361,7 +361,12 @@ Next phase is the flow being sent from backendsvc service to one of the backend 
 
 The **assumption is that, in the previous phase, kube-proxy driven NAT rules in iptables translated the backendsvc service IP to the backend2 pod' s IP (which is on Worker 2 node)** to service the request that came from the frontend pod in the previous section. 
 
-As mentioned in the assumption above, the kube-proxy managed iptables NAT rule DNATed backendsvc IP (10.104.65.133) to backend2 pod IP (10.222.2.34). Basically this flow is the service to backend2 pod communication and it has the following values in the Ethernet and IP headers.
+As mentioned in the assumption above, the kube-proxy managed iptables NAT rule DNATed backendsvc IP (10.104.65.133) to backend2 pod IP (10.222.2.34). Hence, the flow that will be explained in this section is shown below. 
+
+
+
+
+Basically this flow is the service to backend2 pod communication and it has the following values in the Ethernet and IP headers.
 
 - Source IP = 10.222.1.48 (frontend pod IP)
 - Destination IP = 10.222.2.34 (backend2 pod IP)
