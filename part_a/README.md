@@ -101,7 +101,7 @@ vmware@<b>worker1</b>:~$ <b>ip address</b>
 </code></pre>
 
 
-- "geneve_sys" is the actual tunnel interface (antrea-tun0) used on the OVS in the worker nodes for overlay encapsulation functionality of Antrea. It acts as a slave interface of "ovs-system" interface. 
+- "genev_sys" is the actual tunnel interface (antrea-tun0) used on the OVS in the worker nodes for overlay encapsulation functionality of Antrea. It acts as a slave interface of "ovs-system" interface. 
 - "ovs-system" interface is the OVS internal port which is not used for any IP / OSI Layer 3 function here. For more info please check [this introduction video](https://www.youtube.com/watch?v=rYW7kQRyUvA).
 - "antrea-gw0" interface is basically the default gateway interface for all the pods on Worker 1.
 
@@ -164,7 +164,7 @@ vmware@<b>worker2</b>:~$ <b>ip address</b>
        valid_lft forever preferred_lft forever
 </code></pre>
 
-- "geneve_sys" is the actual tunnel interface (antrea-tun0) used on the OVS in the worker nodes for overlay encapsulation functionality of Antrea. It acts as a slave interface of "ovs-system" interface. 
+- "genev_sys" is the actual tunnel interface (antrea-tun0) used on the OVS in the worker nodes for overlay encapsulation functionality of Antrea. It acts as a slave interface of "ovs-system" interface. 
 - "ovs-system" interface is the OVS internal port which is not used for any IP / OSI Layer 3 function here. For more info please check [this introduction video](https://www.youtube.com/watch?v=rYW7kQRyUvA).
 - "antrea-gw0" interface is basically the default gateway interface for all the pods on Worker 1.
 
