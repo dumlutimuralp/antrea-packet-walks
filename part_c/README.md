@@ -1074,4 +1074,9 @@ So bit 16 must be "1", and that is being verified in "reg0". The first four bits
 
 # 10. Phase 3 - Backend Pod to Service
 
+The flow that will be explained in this section is shown below.
+
+![](2020-09-30_23-54-39.png)
+
+
 # 11. Phase 4 - Service to Frontend Pod
