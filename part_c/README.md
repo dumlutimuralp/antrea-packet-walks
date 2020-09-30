@@ -662,7 +662,7 @@ Based on the current flow' s source and destination MAC/IP values the flow match
 
 - Third action is to modify the destination MAC address of the flow "mod_dl_dst: aa:bb:cc:dd:ee:ff" 
 
-- Fourth action is to set the "NXM_NX_REG1" bit to "0x1" (by load:0x1 in hex, which is 1 in decimal). This register represents the OF Port ID which this flow will be sent through.  "1" is the OF Port ID for the tunnel0 interface (geneve_sys_6081 interface on Linux) used for overlay networking between Kubernetes worker nodes. The outputs and diagrams shown in [Part A Section 3.4](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_a#34-identifying-ovs-port-ids-of-port-ids) can be reviewed again to see OF Port ID.
+- Fourth action is to set the "NXM_NX_REG1" bit to "0x1" (by load:0x1 in hex, which is 1 in decimal). This register represents the OF Port ID which this flow will be sent through.  "1" is the OF Port ID for the tunnel0 interface (genev_sys_6081 interface on Linux) used for overlay networking between Kubernetes worker nodes. The outputs and diagrams shown in [Part A Section 3.4](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_a#34-identifying-ovs-port-ids-of-port-ids) can be reviewed again to see OF Port ID.
 
 - Fifth action is to set the "NXM_NX_REG0[16]" to "1" (by load:0x1). This value in Reg0[16] means that the destination MAC address in the flow is known to OVS. In other words this MAC address exists in OVS MAC address table (Table 80), which is explained in a seperate section. 
 
@@ -692,16 +692,16 @@ The second flow entry checks whether if the flow is a new flow (+new) and if it 
 
 The current flow is a NEW and TRACKED flow and additionally it is coming from the gateway interface hence its reg0[0..15] was already set to "1" earlier in Table 10 (Section 5.1). **So the current flow matches the first flow entry in Table 105.** The actions in the first flow entry is to commit this tracked flow to conntrack table and hand it over to Table 110 (actions=ct(commit,table=110..)) and also set the NXM_NX_CT_MARK[] register to 0x20 (load:0x20) . The next stop is Table 110.
 
-**Note :** NSM_NX_CT_MARK register is used at a later stage for identifying the response from the backend2 pod and take the appropriate action on that return traffic. The reason is backend2 pod' s response to the current flow will have to be steered back to antrea-gw0 interface on Worker 1 node for ip tables NAT rule processing. (Section 8.4) Why ? Because this flow has come from the backendsvc service (from iptables processing) and will be delivered to the backend2 pod (although the source IP is frontend pod IP and destination IP is backend2 pod IP).
+**Note :** NSM_NX_CT_MARK register is used at a later stage for identifying the response from the backend2 pod and take the appropriate action on that return traffic. The reason is backend2 pod' s response to the current flow will have to be steered back to antrea-gw0 interface on Worker 1 node for ip tables NAT rule processing. It will be explained in Section 10.
 
 
 ## 9.9 L2ForwardingOut Table #110
 
 Table 110 on Worker 1 node is shown below.
 
-This table' s job is simple. First flow entry in this table first reads the value in register reg0[16]. The reg0[16] was set to "1" back in L3Forwarding Table #70 (Section 9.7) . "1" means the destination MAC address in the current flow is known to OVS. And then the same flow entry reads the value in "NXM_NX_REG1" to see which OF port is the output port for this flow. 
+This table' s job is simple. First flow entry in this table first reads the value in register reg0[16]. If the value of this register is "1" in decimal, that means the destination MAC address is known to OVS and the flow should be able to get forwarded (otherwise it would get dropped). The same flow entry has an action defined as "actions=output:NXM_NX_REG1[]". What this action does is it reads the value in "NXM_NX_REG1" to determine the OF port this flow will be sent through and then sends the flow onwards to that port.
 
-The value of REG1  was set to "0x1" (which is "1" in decimal) also back in L3Forwarding Table #70. "1" is the OF Port ID of tunnel0 interface (geneve_sys_6081 interface on Linux). Hence the OVS sends this flow onwards to the tunnel0 interface to be encapsulated with GENEVE headers. 
+The value of reg0[16] was set to "1" back in L3Forwarding Table #70 (Section 9.7). The value of REG1 was set to "0x1" (which is "1" in decimal) also back in L3Forwarding Table #70. "1" is the OF Port ID of tunnel0 interface (genev_sys_6081 interface on Linux). Hence the OVS sends this flow onwards to the tunnel0 interface to be encapsulated with GENEVE headers. 
 
 <pre><code>
 vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ovs -- ovs-ofctl dump-flows br-int table=110 --no-stats
@@ -712,16 +712,18 @@ vmware@master:~$
 
 **Note :** The second flow entry in this table obviously drops the flows which do not have their "reg0[16]" register set.
 
-The logic of "reg0=-0x10000/0x10000" in the flow entry is that the first 0x10000 is the desired value of thie register. The second 0x10000 is the exact instructions on which specific bit(s) should be verified to match the desired value. Since "0x" is hexadecimal, below is a detailed explanation of the position of the bit that is verified. 
+The logic of "reg0=-0x10000/0x10000" in the flow entry is that the first 0x10000 is the desired value of this register. The second 0x10000 is the exact instructions on which specific bit(s) should be verified to match the desired value. Since "0x" is hexadecimal, below is a detailed explanation of the position of the bit that is verified. 
 
 <pre><code>
-23            16  15            8   7             0
-0 0 0 0 0 0 0 1   0 0 0 0 0 0 0 0   0 0 0 0 0 0 0 0
+23              16  15               8   7               0
+0 0 0 0 | 0 0 0 1   0 0 0 0 |  0 0 0 0   0 0 0 0 | 0 0 0 0
 </code></pre>
+
+So bit 16 must be "1", and that is being verified in "reg0". The first four bits on the left hand side is not worth to mention hence the desired value and actual value are both shown as "0x10000". 
 
 ## 9.10 Encapsulation from Worker 1 to Worker 2
 
-When the flow gets to tunnel0 interface on Worker 1 node, which essentially is the geneve_sys_6081 named interface on Linux, the interface adds the GENEVE headers to the flow with the destination IP address of 10.79.1.202 (which was set in Table 70 earlier) and source IP of 10.79.1.201 which is Worker 1 node IP. Next the flow will be sent through the ens160 interface of the Worker 1 node onwards to the physical network, destined to the Worker 2 node.
+When the flow gets to tunnel0 interface on Worker 1 node, which essentially is the genev_sys_6081 named interface on Linux Worker 1 node, the interface adds the GENEVE headers to the flow with the destination IP address of 10.79.1.202 (which was set in Table 70 back in Section 9.7 earlier) and source IP of 10.79.1.201 which is Worker 1 node IP. Next the flow will be sent through the ens160 interface of the Worker 1 node onwards to the physical network, destined to the Worker 2 node.
 
 A quick tcpdump on the ens160 interface of the Worker 1 node would reveal this, shown below. UDP 6081 is the GENEVE port.
 
