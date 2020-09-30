@@ -11,9 +11,9 @@ This section explains the packet flow between frontend and backend pods, which a
 
 The flow that will be explained in this section is shown below.
 
+![](2020-09-16-17-49-42.png)
 
-
-Basically this flow is frontend pod accessing the backendsvc service on TCP port 80. Backendsvc service is backed by backend1 and backend2 pod, as shown in kubectl outputs in section 3.2.
+This flow comes to OVS on the frontend pod port. Basically this flow is frontend pod accessing the backendsvc service on TCP port 80. Backendsvc service is backed by backend1 and backend2 pods, as shown in kubectl outputs in [Part A Section 3.2](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_a#32-test-application).
 
 At this stage, the current flow has the following values in the Ethernet and IP headers.
 
@@ -41,7 +41,6 @@ vmware@master:~$
 </code></pre>
 
 This table is to classify the traffic by matching it on the ingress port and then setting the register NXM_NX_REG0[0..15] bits as following; "0" for tunnel, "1" for local gateway and "2" for local pod.  The current flow in this scenario, which is initiated from frontend pod and comes to OVS on the frontend pod interface, matches the <b>sixth</b> flow entry in the above output (which is highlighted). First action in this flow entry is to set the value of the register reg0[0..15] to "0x2", which means flow comes from a local pod. Second action in the same flow entry is to hand over the flow to next table which is Table 10. (resubmit(,10))  
-
 So next stop is Table 10.
 
 **Note :** "0x" means that it is hexadecimal. For example, 
@@ -155,13 +154,13 @@ vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ov
 vmware@master:~$ 
 </code></pre>
 
-This table is for committing all the new flows for tracking them. This action is specifically explained as "Commit the connection to the connection tracking module which will be stored beyond the lifetime of packet in the pipeline." [in OVS docs](https://docs.openvswitch.org/en/latest/tutorials/ovs-conntrack/).
+This table is for committing all the new flows for tracking them. This action, ct(commit,), is specifically explained as "Commit the connection to the connection tracking module which will be stored beyond the lifetime of packet in the pipeline." [in OVS docs](https://docs.openvswitch.org/en/latest/tutorials/ovs-conntrack/).
 
-The first flow entry checks whether if the flow is a new flow (+new) and if it is a tracked flow (+trk). The same flow entry also checks if the flow is coming from the gateway interface. This is represented by reg0=0x1/0xffff. Explanation of this is as following. The second part "0xffff" instructs OVS to verify the first 16 bits in reg0, meaning reg0[0..15] and then the first part "0x1" means the result of that check should be "1". So it basically checks reg0[0..15]. The Reg0[0..15] is set in Classifier Table 10 and it is set to "1" if the flow comes from antrea-gw0 interface. However this flow is not coming from the gateway interface, it is coming from a local pod interface (frontend pod interface on OVS) 
+The first flow entry checks whether if the flow is a new flow (+new) and if it is a tracked flow (+trk). The same flow entry also checks if the flow is coming from the gateway interface. This is represented by reg0=0x1/0xffff. Explanation of this is as following. The second part "0xffff" instructs OVS to verify the first 16 bits in reg0, meaning reg0[0..15] and then the first part "0x1" means the result of that check should be "1". So it basically checks reg0[0..15]. The Reg0[0..15] is set by Classifier Table 10 and it is set to "1" if the flow comes from antrea-gw0 interface. 
 
-The second flow entry checks whether if the flow is a new flow (+new) and if it is a tracked flow (+trk). The action for this flow entry is committing this tracked flow to conntrack table (actions=ct(commit,..)) and then handing the flow over to the next table (,table=110).
+The second flow entry checks whether if the flow is a new flow (+new) and if it is a tracked flow (+trk). 
 
-In this case the current flow matches this <b>second</b> flow entry. It is a new flow from frontend pod to backendsvc service and it is being tracked (previously from Conntrack Table 30). Hence the current flow is committed to conntrack table (actions=ct(commit,..)) and then it is handed over to the next table (,table=110). So next stop is Table 110. 
+In this case the current flow matches this <b>second</b> flow entry. It is not coming from the gateway interface; it is coming from a local pod interface (frontend pod interface on OVS). It is a new flow from frontend pod to backendsvc service and it is being tracked (previously from Conntrack Table 30 and 31). Hence the current flow is committed to conntrack table (actions=ct(commit,..)) and then it is handed over to the next table (,table=110). So next stop is Table 110.  
 
 ## 8.7 L2ForwardingOut Table #110
 
@@ -176,16 +175,18 @@ vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ov
 vmware@master:~$
 </code></pre>
 
-The current flow' s reg0[16] bit was set to "0x1" (1 in decimal)  back in DNAT Table 40. and also the value of REG1 was set to "0x2" (2 in decimal) back in DNAT Table 40. "2" is the OF Port ID of antrea-gw0 interface. Hence the current flow is sent to onwards to the antrea-gw0 by OVS.
+The current flow' s reg0[16] bit was set to "0x1" (1 in decimal)  back in DNAT Table 40 and also the value of REG1 was set to "0x2" (2 in decimal) back in DNAT Table 40. "2" is the OF Port ID of antrea-gw0 interface. Hence the current flow is sent onwards to the antrea-gw0 by OVS.
 
 **Note :** The second flow entry in this table obviously drops the flows which do not have their "reg0[16]" register set.
 
 The logic of "reg0=-0x10000/0x10000" in the flow entry is that the first 0x10000 is the desired value of this register. The second 0x10000 is the exact instructions on which specific bit(s) should be verified to match the desired value. Since "0x" is hexadecimal, below is a detailed explanation of the position of the bit that is verified. 
 
 <pre><code>
-23            16  15            8   7             0
-0 0 0 0 0 0 0 1   0 0 0 0 0 0 0 0   0 0 0 0 0 0 0 0
+23              16  15               8   7               0
+0 0 0 0 | 0 0 0 1   0 0 0 0 |  0 0 0 0   0 0 0 0 | 0 0 0 0
 </code></pre>
+
+So bit 16 must be "1", and that is being verified in "reg0". The first four bits on the left hand side is not worth to mention hence the desired value and actual value are both shown as "0x10000". 
 
 ## 8.8 IPTables
 
@@ -358,7 +359,7 @@ Next phase is the flow being sent from backendsvc service to one of the backend 
 
 # 9. Phase 2 - Service to Backend Pod 
 
-In this section the assumption is that, in the previous phase, kube-proxy driven NAT rules in iptables translated the backendsvc service IP to the backend2 pod' s IP (which is on Worker 2 node) to service the request that came from the frontend pod in the previous section. 
+The **assumption is that, in the previous phase, kube-proxy driven NAT rules in iptables translated the backendsvc service IP to the backend2 pod' s IP (which is on Worker 2 node)** to service the request that came from the frontend pod in the previous section. 
 
 As mentioned in the assumption above, the kube-proxy managed iptables NAT rule DNATed backendsvc IP (10.104.65.133) to backend2 pod IP (10.222.2.34). Basically this flow is the service to backend2 pod communication and it has the following values in the Ethernet and IP headers.
 
