@@ -703,14 +703,14 @@ Table 110 on Worker 1 node is shown below.
 
 This table' s job is simple. First flow entry in this table first reads the value in register reg0[16]. If the value of this register is "1" in decimal, that means the destination MAC address is known to OVS and the flow should be able to get forwarded (otherwise it would get dropped). The same flow entry has an action defined as "actions=output:NXM_NX_REG1[]". What this action does is it reads the value in "NXM_NX_REG1" to determine the OF port this flow will be sent through and then sends the flow onwards to that port.
 
-The value of reg0[16] was set to "1" back in L3Forwarding Table #70 (Section 9.7). The value of REG1 was set to "0x1" (which is "1" in decimal) also back in L3Forwarding Table #70. "1" is the OF Port ID of tunnel0 interface (genev_sys_6081 interface on Linux). Hence the OVS sends this flow onwards to the tunnel0 interface to be encapsulated with GENEVE headers. 
-
 <pre><code>
 vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ovs -- ovs-ofctl dump-flows br-int table=110 --no-stats
  cookie=0x1000000000000, table=110, priority=200,ip,reg0=0x10000/0x10000 actions=output:NXM_NX_REG1[]
  cookie=0x1000000000000, table=110, priority=0 actions=drop
 vmware@master:~$
 </code></pre>
+
+The value of reg0[16] was set to "1" back in L3Forwarding Table #70 (Section 9.7). The value of REG1 was set to "0x1" (which is "1" in decimal) also back in L3Forwarding Table #70. "1" is the OF Port ID of tunnel0 interface (genev_sys_6081 interface on Linux). **Hence the OVS sends this flow onwards to the tunnel0 interface.** 
 
 **Note :** The second flow entry in this table obviously drops the flows which do not have their "reg0[16]" register set.
 
@@ -725,7 +725,7 @@ So bit 16 must be "1", and that is being verified in "reg0". The first four bits
 
 ## 9.10 Encapsulation from Worker 1 to Worker 2
 
-When the flow gets to tunnel0 interface on Worker 1 node, which essentially is the genev_sys_6081 named interface on Linux Worker 1 node, the interface adds the GENEVE headers to the flow with the destination IP address of 10.79.1.202 (which was set in Table 70 back in Section 9.7 earlier) and source IP of 10.79.1.201 which is Worker 1 node IP. Next the flow will be sent through the ens160 interface of the Worker 1 node onwards to the physical network, destined to the Worker 2 node.
+When the flow gets to tunnel0 (genev_sys_6081) interface on Worker 1 node, Linux IP Stack adds the GENEVE headers to the flow with the destination IP address of 10.79.1.202 (which was determined in Table 70 back in Section 9.7 earlier) and source IP of 10.79.1.201 which is Worker 1 node IP. Next the flow is sent through the ens160 interface of the Worker 1 node onwards to the physical network, destined to the Worker 2 node.
 
 A quick tcpdump on the ens160 interface of the Worker 1 node would reveal this, shown below. UDP 6081 is the GENEVE port.
 
@@ -733,16 +733,17 @@ A quick tcpdump on the ens160 interface of the Worker 1 node would reveal this, 
 vmware@worker1:~$ sudo tcpdump -i ens160 -en udp port 6081
 tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
 listening on ens160, link-type EN10MB (Ethernet), capture size 262144 bytes
-16:35:06.400076 <b>00:50:56:8f:4e:82 > 00:50:56:8f:1c:f6, ethertype IPv4 (0x0800), length 146: 10.79.1.201.29932 > 10.79.1.202.6081</b>: Geneve, Flags [none], vni 0x0, proto TEB (0x6558): 4e:99:08:c1:53:be > aa:bb:cc:dd:ee:ff, ethertype IPv4 (0x0800), length 96: 10.222.1.48.55264 > 10.222.2.2.53: 19854+ A? backendsvc.default.svc.cluster.local. (54)
-16:35:06.400604 <b>00:50:56:8f:4e:82 > 00:50:56:8f:1c:f6, ethertype IPv4 (0x0800), length 146: 10.79.1.201.29932 > 10.79.1.202.6081</b>: Geneve, Flags [none], vni 0x0, proto TEB (0x6558): 4e:99:08:c1:53:be > aa:bb:cc:dd:ee:ff, ethertype IPv4 (0x0800), length 96: 10.222.1.48.55264 > 10.222.2.2.53: 28033+ AAAA? backendsvc.default.svc.cluster.local. (54)
+21:02:21.273147 <b>00:50:56:8f:4e:82 > 00:50:56:8f:1c:f6</b>, ethertype IPv4 (0x0800), length 124: <b>10.79.1.201.12445 > 10.79.1.202.6081</b>: Geneve, Flags [none], vni 0x0, proto TEB (0x6558): <b>4e:99:08:c1:53:be > aa:bb:cc:dd:ee:ff</b>, ethertype IPv4 (0x0800), length 74: <b>10.222.1.48.46490 > 10.222.2.34.80</b>: Flags [S], seq 2799349838, win 64860, options [mss 1410,sackOK,TS val 3988709021 ecr 0,nop,wscale 7], length 0
 <b>OUTPUT OMITTED</b>
 </code></pre>
 
 The source and destination IP/MAC are the ens160 interfaces of the Worker 1 and Worker 2 nodes. Highlighted above. The inner IP/MAC can also be seen in the same output.
 
+**Note:** Notice "vni 0x0" that is the actual network ID used in the GENEVE header for this traffic. Apparently no specific ID needs to be used cause OVS keeps track of each flow individually.
+
 # 9.11 Worker 2 Node OVS Flow Process
 
-When the Worker 2 node receives the flow on its ens160 interface, the Linux Kernel IP stack knows that geneve_system_6081 interface (tunnel0) is responsible for decapsulation of this flow, so it strips the outer headers and then reads the GENEVE header. 
+When the Worker 2 node receives the flow on its ens160 interface, the Linux Kernel IP stack reads the GENEVE header, strips it out and then sends the flow over to the tunnel0 (genev_sys_6081) interface on the node.
 
 At this stage the inner headers have the following IP/MAC. (they have not changed since Section)
 
