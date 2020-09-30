@@ -463,7 +463,7 @@ ConntrackState table processes all the flows that are in tracked state (basicall
 
 The current flow is a completely NEW flow - from frontend pod to backend2 pod. Hence the flow matches the <b>last entry</b> in the flow table highlighted above. Notice the action in the same flow entry is handing the flow over to the next table which is table 40 (resubmit(,40)). So next stop is Table 40.
 
-**Note :** The current flow is actually the continuity of the previous flow, which was from frontend pod to backendsvc service. However that previous flow has been subject to DNAT process by iptables in Section 4.8. The destination IP of that previous flow has been changed (to backend2 pod IP) so the current flow, whose source IP is frontend pod IP and destination IP is now the backend1 pod IP, is a new flow. Hence it matches the last flow entry in Table 31. 
+**Note :** The current flow is actually the continuity of the previous flow, which was from frontend pod to backendsvc service. However that previous flow has been subject to DNAT process by iptables in Section 8.8. The destination IP of that previous flow has been changed (to backend2 pod IP) so the current flow, whose source IP is frontend pod IP and destination IP is now the backend1 pod IP, is a new flow. Hence it matches the last flow entry in Table 31. 
 
 ## 9.5 DNAT Table #40
 
@@ -486,9 +486,13 @@ The destination IP of the current flow is backend2 pod IP (10.222.2.34) and it d
 
 ## 9.6 EgressRule Table #50
 
-At this stage, the flow is in Table 50. This table consists of the corresponding flow entries of the egress rules that are configured in Kubernetes Network Policies "frontendpolicy" and "backendpolicy" respectively. Cause there is a frontend pod and backend1 pod running on this Worker 2 node. This is the exact step where the current flow will be matched against the egress rules of the Kubernetes Network Policy "frontendpolicy"; the policy which is applied to the frontend pod since it is the initiator of the flow. 
+At this stage, the flow is in Table 50. 
 
-However the flow in Phase 1 (Section 8) could not be matched against The Kubernetes Network Policy "frontendpolicy"; cause that flow' s destination IP was still the backendsvc service IP and Kubernetes Network Policy would not make an accurate check in that case and legitimate flows would have been blocked. This is the reason as to why the flow in Phase 1 bypasses the Egress Rule tables and gets redirected to antrea-gw0 interface onwards to Kernel IP stack for iptables rule processing. Only after kube-proxy managed iptables rules apply DNAT on that flow (in Phase 1), which essentially translates the destination backendsvc service IP to one of the backend pods IP, then the new flow in this current phase, which is Phase 2, can be processed by Kubernetes Network Policy "frontendpolicy" as will be explained in this step. 
+Table 50 has flow entries which correspond to the egress rules configured in Kubernetes Network Policies applied to the pods on Worker 1 node. There is a frontend pod and a backend1 pod on the Worker 1 node. "frontendpolicy" is applied to frontend pod and "backendpolicy" is applied to backend1 pod and backend2 pod (on Worker2) . 
+
+In this section the current flow will be matched against the egress rules of the Kubernetes Network Policy "frontendpolicy"; since it is the policy which is applied to the frontend pod and frontend pod is the initiator of the flow. 
+
+In the previous section (Section 8) the flow could not be matched against The Kubernetes Network Policy "frontendpolicy", instead bypassed all the EgressRule tables. Because that flow' s destination IP was still the backendsvc service IP and Kubernetes Network Policy would not make an accurate check in that case and legitimate flows would have been blocked. This is the reason as to why the flow in Section 8 bypassed all the Egress Rule tables and got redirected to antrea-gw0 interface onwards to Kernel IP stack for iptables rule processing. Only after kube-proxy managed iptables rules applied DNAT on that flow (in Phase 1), which essentially translated the destination backendsvc service IP to one of the backend pods IP, then the new flow in this current phase, which is Phase 2, can be processed by Kubernetes Network Policy "frontendpolicy" as will be explained in this step. 
 
 The content of the "frontendpolicy" is shown below.
 
@@ -547,9 +551,9 @@ vmware@master:~$
 vmware@master:~$ 
 </code></pre>
 
-The egress section of this network policy is highlighted in the above output. In this network policy, egress HTTP to backend pods and egress DNS to anywhere is allowed and this policy is applied to the frontend pod. Remember, the current flow is still from frontend pod to one of the backend pods; hence the current flow is now subject to Kubernetes Network Policy' s egress rules that are applied to the frontend pod.
+The egress section of this network policy is highlighted in the above output. In this network policy that, frontend pod can initiate HTTP to backend pods and it can initiate DNS to anywhere. All other type of traffic from frontend pod will be denied. Notice the current flow is from frontend pod to backend2 pod; hence the current flow is now subject to Kubernetes Network Policy "frontendpolicy" ' s egress rules that are applied to the frontend pod.
 
-**Note :** The reason DNS is also allowed is, when the frontend pod sends a request to the backendsvc service by its name, a DNS query is sent by frontend pod to Kubernetes DNS so that frontend pod can call out one of the backend pods by their IPs, hence DNS has to be allowed to make this work. **As mentioned before, this article focuses on the actual application flow which occurs after the DNS query. In this section the flow from frontend pod to backend2 pod on TCP port 80 is explained.**
+**Note :** The reason DNS is also allowed is, when the frontend pod sends a request to the backendsvc service by its name, a DNS query is sent by frontend pod to Kubernetes DNS so that frontend pod can call out one of the backend pods by their IPs, hence DNS has to be allowed to make this work. **As mentioned before, this article focuses on the actual application flow which occurs after the DNS query. In this section the flow from frontend pod to backend1 pod on TCP port 80 is explained.**
 
 The Table 50 on Worker 1 node is shown below. 
 
@@ -570,21 +574,21 @@ vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ov
 vmware@master:~$ 
 </code></pre>
 
-One thing to emphasize here again is that this table includes the egress rules of all the Kubernetes Network Policies applied to any of the pods on Worker 1 node (not only the egress rules configured on "frontendpolicy" and applied to frontend pod). Cause there is a frontend pod and a backend1 pod running on this Worker 1 node. However the focus in this section is on the flow entries which correspond to the egress rules of the Kubernetes Network Policy "frontendpolicy" which is applied to the frontend pod.
+One thing to emphasize here again is that this table includes the egress rules of all the Kubernetes Network Policies applied to all of the pods on Worker 1 node (not only the egress rules configured on "frontendpolicy" and applied to frontend pod). Cause there is a frontend pod and a backend1 pod running on Worker 1 node. However the focus in this section is on the flow entries which correspond to the egress rules of the Kubernetes Network Policy "frontendpolicy" which is applied to the frontend pod.
 
 First thing to understand from above table is OVS uses "conjunctive" match across multiple fields alongside "conjunction" action. This enables OVS to optimize policy implementation without consuming too many flow entries.
 
-The first flow entry in Table 50 above checks whether if the flow is an already established flow (-new,+trk); if it is then there is no need to process the flow against network policy, since Kubernetes Network Policy is STATEFUL by nature. However the current flow is a NEW flow hence it does NOT match this first flow entry.
+The first flow entry in Table 50 above checks whether if the flow is an already established flow (-new,+trk); if it is then there is no need to process the flow against the remaining flow entries in this table since Kubernetes Network Policy is STATEFUL by nature. However the current flow is a NEW flow hence it does NOT match this first flow entry.
 
 The second flow entry matches against a given source or destination IP set. But there is no specific IP that this flow entry checks upon apparently. Same flow entry has a conjunction action with a conjunction id of "2".
 
 The third flow entry matches against destination protocol, which is UDP 53 (DNS) in this case. Same flow entry has a conjunction action with a conjunction id of "2". 
 
-The fourth flow entry matches against destination protocol, which is TCP 80 (HTTP) in this case. Same flow entry has a conjunction action with a conjunction id of "3".
+The fourth flow entry matches against destination protocol, which is TCP 80 (HTTP) in this case. Same flow entry has a conjunction action with a conjunction id of "1".
 
-The fifth flow entry matches against a specific source IP, which is frontend pod IP - 10.222.1.48. The same flow entry has a conjunction action with both an id of "2" and "3".
+The fifth flow entry matches against a specific source IP, which is frontend pod IP - 10.222.1.48. The same flow entry has a conjunction action with both an id of "1" and "2".
 
-**Note :** The x/y notation in the conjunctions are to represent whether if the conjunction has multiple conditions to match.
+**Note :** The x/y notation in the conjunctions are to represent whether if the conjunction has multiple conditions to match and which condition the current flow represents.
 
 <b>So conjunction 2 is fully implemented by second, third and fifth flow entries.</b> Conjunction 2 checks if the source IP address is 10.222.1.48 and if the destination protocol is UDP 53. This corresponds to the DNS specific rule in the egress section of the Kubernetes network policy named as "frontendpolicy" shown earlier. DNS is allowed egress to any destination IP hence the second flow entry above does not have any specific IP to match against. 
 
@@ -592,25 +596,25 @@ The sixth flow entry matches against source IP, which is 10.222.1.47, which is t
 
 The seventh and eight flow entries match against the destination IP to see if it is either of the IPs; 10.222.1.47 or 10.222.2.34. These flow entries has a conjunction action with a conjunction id of "1".
 
-<b> So conjunction 1 is fully implemented by fifth, seventh and eighth flow entries.</b> Conjunction 1 checks if the source IP is 10.222.1.48 and then if the destination is TCP 80 and then if the destination IP is either 10.222.1.47 or 10.222.2.34. This corresponds to TCP 80 specific rule in the egress section of the Kubernetes network policy named as "frontendpolicy".
+<b> So conjunction 1 is fully implemented by fourth, fifth, seventh and eighth flow entries.</b> Conjunction 1 checks if the source IP is 10.222.1.48 and then if the destination is TCP 80 and then if the destination IP is either 10.222.1.47 or 10.222.2.34. This corresponds to TCP 80 specific rule in the egress section of the Kubernetes network policy named as "frontendpolicy".
 
-**Note :** The sixth flow entry mentioned above has got nothing to do with Kubernetes Network Policy "frontendpolicy", it actually corresponds to the egress rule used in the Kubernetes Network Policy "backendpolicy" and will be explained in a seperate section.
+**Note :** The sixth flow entry mentioned above has got nothing to do with Kubernetes Network Policy "frontendpolicy", it actually corresponds to the egress rule used in the Kubernetes Network Policy "backendpolicy" which is not relevant here.
 
-The ninth flow entry defines two actions for conjunction 2 as soon as all fields of conjunction 2 (which is explained above with second,third and fifth flow entries) is matched. First action is to set the register NXM_NX_REG5 with the conjunction id of "2" (0x2). The second action in the same flow entry is to hand over the flow to Table 70. (resubmit(,70))
+The ninth flow entry defines two actions for conjunction 2 as soon as all fields of conjunction 2 (which is explained above with second, third and fifth flow entries) is matched. First action is to set the register NXM_NX_REG5 with the conjunction id of "2" (0x2). The second action in the same flow entry is to hand the flow over to Table 70. (resubmit(,70))
 
-The tenth flow entry defines two actions for conjunction 1 as soon as all fields of conjunction 1 (which is explained above with fifth,seventh and eigth flow entries) is matched. First action is to set the register NXM_NX_REG5 with the conjunction id of "1" (0x1). The second action in the same flow entry is to hand over the flow to Table 70. (resubmit(,70))
+The tenth flow entry defines two actions for conjunction 1 as soon as all fields of conjunction 1 (which is explained above with fourth, fifth,seventh and eigth flow entries) is matched. First action is to set the register NXM_NX_REG5 with the conjunction id of "1" (0x1). The second action in the same flow entry is to hand the flow over to Table 70. (resubmit(,70))
 
-**Note :** NXM_NX_REG5 register is used to cache the conjunction id which is mapped to the egress Network Policy Rule in Antrea agent and also then written back to the Antrea custom resource definition in Kubernetes APIfor another feature of Antrea called "traceflow". More info on it can be found [here](https://github.com/vmware-tanzu/antrea/blob/master/docs/traceflow-guide.md).
+**Note :** NXM_NX_REG5 register is used to cache the conjunction id which is mapped to the egress Network Policy Rule in Antrea agent and also then written back to the Antrea custom resource definition in Kubernetes API for another feature of Antrea called "traceflow". More info on it can be found [here](https://github.com/vmware-tanzu/antrea/blob/master/docs/traceflow-guide.md).
 
-**The current flow (which is from frontend pod IP to backend2 pod IP on protocol TCP 80) matches conjunction 1 (defined in tenth flow entry) and it will be handed over to Table 70. So next stop is Table 70. (explained in Section 5.7 below)**
+**The current flow, which is from frontend pod IP to backend2 pod IP on protocol TCP 80, matches conjunction 1 (defined in tenth flow entry) and it will be handed over to Table 70. So next stop is Table 70. (explained in Section 9.7 below)**
 
 For reference, remaining flow entries are explained below : 
 
-The eleventh flow entry also defines two actions for conjunction 5 as soon as all fields of conjunction 5 is matched. As mentioned before, this conjunction id has got nothing to do with "frontendpolicy" hence it will be explained in a seperate section.
+The eleventh flow entry also defines two actions for conjunction 5 as soon as all fields of conjunction 5 is matched. As mentioned before, this conjunction id has got nothing to do with "frontendpolicy" and it is not relevant here. It actually coresponds to the egress rules configured in "backendpolicy".
 
-Last flow entry in this table defines that if the flow does not match any of the above entries then the flow is handed over to Table 60 which is EgressDefaultTable. (resubmit(,60)) Table 60 is for isolation rules. Basically when a Kubernetes Network Policy is applied to a pod, the flows which do not match any of the allowed egress flows in Table 50 will be dropped by Table 60.
+Last flow entry in this table defines that if the flow does not match any of the above entries then the flow is handed over to Table 60 which is EgressDefaultTable (resubmit(,60)). Table 60 is for isolation rules. Basically when a Kubernetes Network Policy is applied to a pod, the flows which do not match any of the allowed egress flows in Table 50 will be dropped by Table 60.
 
-For reference, EgressDefault table on Worker 1 node is shown  below. As the current flow matches conjunction 1, Table 60 will be bypassed as the current flow is allowed by Kubernetes Network Policy "frontendpolicy" applied to frontend pod. 
+For reference, EgressDefault Table #60 on Worker 1 node is shown  below. As the current flow matches conjunction 1, Table 60 will be bypassed and the flow is allowed by Kubernetes Network Policy "frontendpolicy" applied to frontend pod. 
 
 <pre><code>
 vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ovs -- ovs-ofctl dump-flows br-int table=60 --no-stats
@@ -650,23 +654,23 @@ The current flow' s source and destination MAC and IP address values are still a
 - Source MAC = 4e:99:08:c1:53:be (antrea-gw0 interface MAC on Worker 1)
 - Destination MAC = aa:bb:cc:dd:ee:ff (When the destination pod is on a different node this global virtual MAC is used. It is explained in Section 12) 
 
-Based on the current flow' s source and destination MAC/IP values. The flow matches the seventh flow entry in Table 70, since the destination IP matches the "nw_dst" field. There are several actions in this seventh flow entry which are explained below : 
+Based on the current flow' s source and destination MAC/IP values the flow matches the seventh flow entry in Table 70, since the destination IP matches the "nw_dst" field. There are several actions in this seventh flow entry which are explained below : 
 
-- First action decrements the TTL ("dec_ttl") since the destination IP of the flow is on another subnet than the one frontend pod is so this flow is actually a routed flow.  
+- First action is to decrement the TTL ("dec_ttl") since the destination IP of the flow is on another subnet than the one frontend pod is, so this flow is actually a routed flo.  
 
-- Second action modifies the source MAC address of the flow "mod_dl_src: 4e:99:08:c1:53:be" to the antrea-gw0 interface of Worker 1 node
+- Second action is to modify the source MAC address of the flow "mod_dl_src: 4e:99:08:c1:53:be" to the antrea-gw0 interface of Worker 1 node
 
-- Third action modifies the destination MAC address of the flow "mod_dl_dst: aa:bb:cc:dd:ee:ff" 
+- Third action is to modify the destination MAC address of the flow "mod_dl_dst: aa:bb:cc:dd:ee:ff" 
 
-- Fourth action sets the "NXM_NX_REG1" bit to "0x1" (by load:0x1 in hex, which is 1 in decimal). This register represents the egress OF Port ID of the flow. (ie which OF port should be the output port for this flow) And "1" is the OF Port ID for the tunnel0 interface for overlay networking between nodes (geneve_sys_6081 interface on Linux). The outputs and diagrams shown in Section 3.4 can be reviewed again to see OF Port ID.
+- Fourth action is to set the "NXM_NX_REG1" bit to "0x1" (by load:0x1 in hex, which is 1 in decimal). This register represents the OF Port ID which this flow will be sent through.  "1" is the OF Port ID for the tunnel0 interface (geneve_sys_6081 interface on Linux) used for overlay networking between Kubernetes worker nodes. The outputs and diagrams shown in [Part A Section 3.4](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_a#34-identifying-ovs-port-ids-of-port-ids) can be reviewed again to see OF Port ID.
 
-- Fifth action sets the "NXM_NX_REG0[16]" to "1" (by load:0x1). This value in Reg0[16] means that OVS knows the destination MAC address. In other words this MAC address exists in OVS MAC address table (Table 80), which is explained in a seperate section. 
+- Fifth action is to set the "NXM_NX_REG0[16]" to "1" (by load:0x1). This value in Reg0[16] means that the destination MAC address in the flow is known to OVS. In other words this MAC address exists in OVS MAC address table (Table 80), which is explained in a seperate section. 
 
-- Sixth action sets the "NXM_NX_TUN_IPV4_DST" to "0x4f0aca" which corresponds to 10.79.1.202 in IP. Meaning that the tunnel destination for this flow should be Worker 2 node. 
+- Sixth action is to set the "NXM_NX_TUN_IPV4_DST" to "0x4f0aca" which corresponds to 10.79.1.202 in IP. Meaning that the destination node for this flow should be Worker 2 node since 10.79.1.202 is the ens160 interface IP of the Worker 2 node.
 
-- Seventh action is "resubmit(,105)" which basically hands over the flow to Table 105. Hence next stop is Table 105. 
+- Seventh action is "resubmit(,105)" which basically hands the flow over to Table 105. Hence next stop is Table 105. 
 
-Note : The flow here skips Table 80 (L2 Forwarding) and 90 (Ingress Rules) since those tables are not relevant for traffic which is destined to a tunnel interface. 
+Note : The flow here skips Table 80 (L2 Forwarding) and 90 (Ingress Rules). The OF Port ID of the port which this flow will be be sent through is already written to register Reg1 and the ingress rules will be processed at the other end (Worker 2 node) cause the receiving pod is on a different node. 
 
 ## 9.8 ConntrackCommit Table #105
 
@@ -684,9 +688,9 @@ This table is for committing all the new flows for tracking them. This action is
 
 The first flow entry checks whether if the flow is a new flow (+new) and if it is a tracked flow (+trk). The same flow entry also checks if the flow is coming from the gateway interface. This is represented by reg0=0x1/0xffff. Explanation of this is as following. The second part "0xffff" instructs OVS to verify the first 16 bits in reg0, meaning reg0[0..15] and then the first part "0x1" means the result of that check should be "1". So it basically checks reg0[0..15]. The Reg0[0..15] is set in Classifier Table 10 and it is set to "1" if the flow comes from antrea-gw0 interface. 
 
-The second flow entry checks whether if the flow is a new flow (+new) and if it is a tracked flow (+trk). The action for this flow entry is committing this tracked flow to conntrack table (actions=ct(commit,..)) and then handing the flow over to the next table (,table=110).
+The second flow entry checks whether if the flow is a new flow (+new) and if it is a tracked flow (+trk). 
 
-The current flow is a NEW and TRACKED flow and additionally it is coming from the gateway interface hence its reg0[0..15] was already set to "1" earlier in Table 10 (Section 5.1). So the current flow matches the first flow entry in Table 105. The actions in the first flow entry is to commit this tracked flow to conntrack table and hand it over to Table 110 (actions=ct(commit,table=110..)) and also set the NXM_NX_CT_MARK[] register to 0x20 (load:0x20) . The next stop is Table 110.
+The current flow is a NEW and TRACKED flow and additionally it is coming from the gateway interface hence its reg0[0..15] was already set to "1" earlier in Table 10 (Section 5.1). **So the current flow matches the first flow entry in Table 105.** The actions in the first flow entry is to commit this tracked flow to conntrack table and hand it over to Table 110 (actions=ct(commit,table=110..)) and also set the NXM_NX_CT_MARK[] register to 0x20 (load:0x20) . The next stop is Table 110.
 
 **Note :** NSM_NX_CT_MARK register is used at a later stage for identifying the response from the backend2 pod and take the appropriate action on that return traffic. The reason is backend2 pod' s response to the current flow will have to be steered back to antrea-gw0 interface on Worker 1 node for ip tables NAT rule processing. (Section 8.4) Why ? Because this flow has come from the backendsvc service (from iptables processing) and will be delivered to the backend2 pod (although the source IP is frontend pod IP and destination IP is backend2 pod IP).
 
