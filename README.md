@@ -2,8 +2,6 @@
 
 This article explains the step by step packet walks for a given application flow in the Open vSwitch (OVS) dataplane implemented by Antrea CNI within a Kubernetes cluster. The high level packet walks are already explained [here](https://github.com/vmware-tanzu/antrea/blob/master/docs/architecture.md#pod-networking), at Antrea' s project repo on Github.
 
-The purpose of this article is to walk the reader through an actual flow pattern between a frontend pod to a Kubernetes service and look at things from that specific flow' s point of view with some different details and more wording.
-
 Special thanks to [Quan Tian](https://github.com/tnqn), [Wenying Dong](https://github.com/wenyingd), [Ran Gu](https://github.com/gran-vmv) for their support in addressing questions about registers and OpenFlow actions. 
 
 ## [PART A - Architecture and Test Environment](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_a/README.md)
