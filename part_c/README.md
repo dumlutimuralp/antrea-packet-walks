@@ -370,16 +370,16 @@ Basically this flow is the service to backend2 pod communication and it has the 
 - Source IP = 10.222.1.48 (frontend pod IP)
 - Destination IP = 10.222.2.34 (backend2 pod IP)
 - Source MAC = 4e:99:08:c1:53:be (antrea-gw0 interface MAC on Worker 1)
-- Destination MAC = aa:bb:cc:dd:ee:ff (When the destination pod is on a different node this global virtual MAC is used. It is explained in Section 12) 
+- Destination MAC = aa:bb:cc:dd:ee:ff (When the destination pod is on a different node this global virtual MAC is used. It will be explained in [Part D Section 12](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_d)) 
 
-To verify how after iptables processing, the service to backend pod (backend2 pod in this case) flow is sent by antrea-gw0 interface to the OVS, a quick tcpdump on the antrea-gw0 interface on Worker 1 node would reveal the source and destination IP/MAC of this communication. It is shown below.
+To verify how the service to backend pod (backend2 pod in this case) flow comes to OVS (from antrea-gw0 interface), a quick tcpdump on the antrea-gw0 interface on Worker 1 node would reveal the source and destination IP/MAC of this communication. It is shown below.
 
 <pre><code>
 vmware@worker1:~$ sudo tcpdump -i antrea-gw0 -en
 [sudo] password for vmware: 
 tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
 listening on antrea-gw0, link-type EN10MB (Ethernet), capture size 262144 bytes
-09:41:49.008628 be:2c:bf:e4:ec:c5 > 4e:99:08:c1:53:be, ethertype IPv4 (0x0800), length 74: 10.222.1.48.56670 > 10.104.65.133.80<: Flags [S], seq 569506855, win 64860, options [mss 1410,sackOK,TS val 3688671724 ecr 0,nop,wscale 7], length 0
+09:41:49.008628 be:2c:bf:e4:ec:c5 > 4e:99:08:c1:53:be, ethertype IPv4 (0x0800), length 74: 10.222.1.48.56670 > 10.104.65.133.80: Flags [S], seq 569506855, win 64860, options [mss 1410,sackOK,TS val 3688671724 ecr 0,nop,wscale 7], length 0
 09:41:49.008680 <b>4e:99:08:c1:53:be > aa:bb:cc:dd:ee:ff, ethertype IPv4 (0x0800), length 74: 10.222.1.48.56670 > 10.222.2.34.80</b>: Flags [S], seq 569506855, win 64860, options [mss 1410,sackOK,TS val 3688671724 ecr 0,nop,wscale 7], length 0
 <b>OUTPUT OMITTED</b>
 </code></pre>
