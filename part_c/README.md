@@ -363,8 +363,7 @@ The **assumption is that, in the previous phase, kube-proxy driven NAT rules in 
 
 As mentioned in the assumption above, the kube-proxy managed iptables NAT rule DNATed backendsvc IP (10.104.65.133) to backend2 pod IP (10.222.2.34). Hence, the flow that will be explained in this section is shown below. 
 
-
-
+![](2020-09-30_17-08-28.png)
 
 Basically this flow is the service to backend2 pod communication and it has the following values in the Ethernet and IP headers.
 
