@@ -384,6 +384,8 @@ listening on antrea-gw0, link-type EN10MB (Ethernet), capture size 262144 bytes
 <b>OUTPUT OMITTED</b>
 </code></pre>
 
+Note 1: For simplicity, the ARP requests/replies between antrea-gw0, frontend pod and backend2 pod are not shown in the above output.
+
 The highlighted flow above will be matched against a flow entry in each OVS Table, processed top to bottom in each individual table, based on the priority value of the flow entry in the table.
 
 ## 9.1 Classifier Table #0
@@ -740,7 +742,9 @@ The source and destination IP/MAC are the ens160 interfaces of the Worker 1 and 
 
 # 9.11 Worker 2 Node OVS Flow Process
 
-When the Worker 2 node receives the flow on its ens160 interface, the Linux Kernel IP stack knows that geneve_system_6081 interface (tunnel0) is responsible for decapsulation of this flow, so it strips the outer headers and then reads the GENEVE header. At this stage the inner headers have the following IP/MAC. (they have not changed since previous section)
+When the Worker 2 node receives the flow on its ens160 interface, the Linux Kernel IP stack knows that geneve_system_6081 interface (tunnel0) is responsible for decapsulation of this flow, so it strips the outer headers and then reads the GENEVE header. 
+
+At this stage the inner headers have the following IP/MAC. (they have not changed since Section)
 
 - Source IP = 10.222.1.48 (frontend pod IP)
 - Destination IP = 10.222.2.34 (backend2 pod IP)
