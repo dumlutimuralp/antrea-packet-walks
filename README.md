@@ -24,4 +24,4 @@ Special thanks to [Quan Tian](https://github.com/tnqn), [Wenying Dong](https://g
 - [Phase 3 Backend Pod to Service](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_c#10-phase-3---backend-pod-to-service)
 - [Phase 4 Service to Frontend](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_c#11-phase-4---service-to-frontend-pod)
 
-## [PART C - ARP Process and Additional Info](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_d/README.md)
+## [PART D - ARP Process and Additional Info](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_d/README.md)
