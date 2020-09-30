@@ -364,7 +364,7 @@ Next phase is the flow being sent from backendsvc service to one of the backend 
 
 # 5. Phase 2 - Service to Backend Pod 
 
-The assumption at this stage is, in the previous, kube-proxy managed NAT rules in iptables translated the backendsvc service IP to the backend1 pod' s IP (which is local to Worker 1 node) to service the request that came from the frontend pod in the previous section. The other scenario, in which iptables translates the flow to backend2 pod IP, will be explained in [Part C](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_c).
+The **assumption at this stage is, in the previous, kube-proxy managed NAT rules in iptables translated the backendsvc service IP to the backend1 pod' s IP (which is local to Worker 1 node)** to service the request that came from the frontend pod in the previous section. The other scenario, in which iptables translates the flow to backend2 pod IP, will be explained in [Part C](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_c).
 
 To elaborate a bit further, the flow that will be explained in this section is shown below. 
 
