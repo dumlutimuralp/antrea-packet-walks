@@ -374,24 +374,20 @@ Next step is the flow to be sent from backendsvc service to one of the backend p
 
 **The assumption at this stage is, in the previous step, kube-proxy managed NAT rules in iptables translated the backendsvc service IP to the backend1 pod' s IP (which is on the same node)** to service the request that came from the frontend pod in the previous section. The other scenario, in which iptables translates the flow to backend2 pod IP, will be explained in [Part C](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_c).
 
-To elaborate a bit further, the flow that will be explained in this section is shown below. 
+As mentioned in the assumption above, the kube-proxy managed iptables NAT rule DNATed backendsvc IP (10.104.65.133) to backend1 pod IP (10.222.1.47). Hence, the flow that will be explained in this section is shown below.
 
 ![](2020-09-21-18-05-57.png)
 
-This flow comes to OVS on antrea-gw0 port. Basically this flow is the service to backend1 pod communication. In Section 4.8 the kube-proxy managed iptables NAT rule DNATed backendsvc IP (10.104.65.133) to backend1 pod IP (10.222.1.47). 
-
-At this stage, the current flow come backs to OVS on the antrea-gw0 port (right after it got processed by iptables rules) and it has the following values in the Ethernet and IP headers.
+Basically this flow is the service to backend1 pod communication and it would have the following values in the Ethernet and IP headers.
 
 - Source IP = 10.222.1.48 (frontend pod IP)
 - Destination IP = 10.222.1.47 (backend1 pod IP)
 - Source MAC = 4e:99:08:c1:53:be (antrea-gw0 interface MAC on Worker 1)
 - Destination MAC = f2:32:d8:07:e2:a6 (backend1 Pod MAC) 
 
-This flow will be matched against a flow entry in each OVS Table, processed top to bottom in each individual table, based on the priority value of the flow entry in the table.
-
 **Note :** Notice that not only the destination IP but also the source and destination MAC addresses also have changed (from the previous step, Section 4).
 
-To verify the Ethernet and IP headers of the flow, a quick tcpdump on the antrea-gw0 interface of the Worker 1 node would reveal the source and destination IP/MAC of this flow. It is shown below.
+To verify the Ethernet and IP headers of the flow (which are shown above), a quick tcpdump on the antrea-gw0 interface of the Worker 1 node would reveal the source and destination IP/MAC of this flow. It is shown below.
 
 <pre><code>
 vmware@master:~$ k exec -it frontend -- sh
@@ -409,6 +405,8 @@ listening on antrea-gw0, link-type EN10MB (Ethernet), capture size 262144 bytes
 </code></pre>
 
 **Note 1:** For simplicity, the ARP requests/replies between antrea-gw0, frontend pod and backend1 pod are not shown in the above output. 
+
+The highlighted flow above will be matched against a flow entry in each OVS Table, processed top to bottom in each individual table, based on the priority value of the flow entry in the table.
 
 ## 5.1 Classifier Table #0
 
