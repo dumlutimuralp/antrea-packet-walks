@@ -1835,6 +1835,6 @@ So the current flow has the following values in the Ethernet and IP headers.
 
 This flow will come to OVS on OF port 2, which is the antrea-gw0 port.
 
-![]()
+![](2020-10-01_17-50-21.png)
 
 This flow will be matched against a flow entry in each OVS Table, processed top to bottom in each individual table, based on the priority value of the flow entry in the table.
