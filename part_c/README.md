@@ -672,7 +672,9 @@ Based on the current flow' s source and destination MAC/IP values the flow match
 
 - Seventh action is "resubmit(,105)" which basically hands the flow over to Table 105. Hence next stop is Table 105. 
 
-Note : The flow here skips Table 80 (L2 Forwarding) and 90 (Ingress Rules). The OF Port ID of the port which this flow will be be sent through is already written to register Reg1 and the ingress rules will be processed at the other end (Worker 2 node) cause the receiving pod is on a different node. 
+**Note 1:** Notice that the original source and destination MAC address in the flow are already the values which are written by the second and third actions in seventh flow entry. Why are those still rewritten ? The reason is this same flow entry (seventh flow entry) is used also for the flows between Pods on different nodes, in which the source MAC ofthe flow would be source Pod' s MAC and destination MAC would be the antrea-gw0 interface of the node where source Pod is running. So with one flow entry two different types of flows are addressed. One is service to pod (on another node) flows, the other is pod to pod (on another node) flows.
+
+**Note 2:** The flow here skips Table 80 (L2 Forwarding) and 90 (Ingress Rules). The OF Port ID of the port which this flow will be be sent through is already written to register Reg1 and the ingress rules will be processed at the other end (Worker 2 node) cause the receiving pod is on a different node. 
 
 ## 9.8 ConntrackCommit Table #105
 
@@ -1074,7 +1076,17 @@ So bit 16 must be "1", and that is being verified in "reg0". The first four bits
 
 # 10. Phase 3 - Backend Pod to Service
 
-The flow that will be explained in this section is shown below.
+In this section the response from backen2 pod (on Worker 2 node) to the frontend pod (on Worker 1 node) will be explained. However the title above says "Backend Pod to Service" ? Why ? 
+
+The flow which made its way to the backend2 pod (in Section 9) had the source IP of frontend pod (10.222.1.48) and destination IP of backend2 pod (10.222.2.34). Hence backend2 pod will reply to frontend pod with its own IP (10.222.2.34) which is expected by any TCP/IP based communication. OVS could easily deliver the response to frontend pod directly.  **But this would break the communication.** The reason is when the frontend pod had initiated the connection (in Section 8) the source IP of the flow was frontend pod IP but the destination IP was backendsvc service IP (10.104.65.133). This destination service IP got DNATed by iptables to the destination IP of backend2 pod (10.222.2.34) in Section 9.  From frontend pod' s point of view it is communicating with backendsvc service IP. Because of this; return flow from backend2 pod to frontend pod should be **SNATed** now by iptables on Worker 1 node and be delivered to the frontend pod with the IP of the backendsvc service IP as the source IP. Hence OVS needs to steer the return flow from backend2 pod to frontend pod to the Worker 1 node' s Kernel IP Stack for iptables processing.
+
+To verify how backend1 pod responds to requests from the frontend pod, a quick tcpdump on the backend1 pod would reveal the source and destination IP/MAC of this flow. It is shown below.
+
+<pre><code>
+vmware@master:~$ k exec -it frontend -- sh
+/ # curl backendsvc
+Praqma Network MultiTool (with NGINX) - backend1 - 10.222.1.47/24
+</code></pre>
 
 ![](2020-09-30_23-54-39.png)
 
