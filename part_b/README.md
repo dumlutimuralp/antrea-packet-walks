@@ -678,7 +678,7 @@ The current flow' s source and destination MAC and IP address values are still a
 
 Based on the flow' s source and destination MAC/IP values the flow matches the last flow entry (eigth entry) in Table 70 (since the prior flow entries match against a different destination MAC). The destination IP and MAC is local to Worker 1 node and clearly there is no L3 forwarding needed. The action in the last flow entry is "resubmit(,80)" which basically hands the flow over to Table 80. Hence next stop is Table 80.
 
-**Note :** The first five flow entries in this table are related to ARP processing "aa:bb:cc:dd:ee:ff" and will be explained in [Part D Section 12](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_d). The sixth and seventh flow entries in this table are for inter node flow patterns and it will be will be explained in Section 9.
+**Note :** The first five flow entries in this table are related to ARP processing "aa:bb:cc:dd:ee:ff" and will be explained in [Part D Section 12](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_d). The sixth and seventh flow entries in this table are for inter node flow patterns and it will be explained in Part C Section 9.
 
 ## 5.8 L2ForwardingCalc Table #80
 
@@ -1084,7 +1084,7 @@ The current flow' s source and destination MAC and IP address values are still a
 
 Based on the current flow' s source and destination IP/MAC values, the current flow matches the last flow entry in Table 70 (since the prior flow entries match against a different destination MAC). The destination IP and MAC is local to Worker 1 node and clearly there is no routing or L3 forwarding needed. The action in the last flow entry is "resubmit(,80)" which basically hands over the flow to Table 80. Hence next stop is Table 80.
 
-**Note :** The first five flow entries in this table are related to ARP processing "aa:bb:cc:dd:ee:ff" and will be explained in [Part D Section 12](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_d). The sixth and seventh flow entries in this table are for inter node flow patterns and it will be will be explained in Section 9.
+**Note :** The first five flow entries in this table are related to ARP processing "aa:bb:cc:dd:ee:ff" and will be explained in [Part D Section 12](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_d). The sixth and seventh flow entries in this table are for inter node flow patterns and it will be explained in Part C Section 9.
 
 ## 6.8 L2ForwardingCalc Table #80
 
@@ -1548,7 +1548,7 @@ The current flow' s source and destination MAC and IP address values are as foll
 
 Based on the current flow' s source and destination MAC/IP values, the current flow matches the last flow entry in Table 70 (since the prior flow entries match against a different destination MAC). The destination IP and MAC is local to Worker 1 node and clearly there is no routing or L3 forwarding needed. The action in the last flow entry is "resubmit(,80)" which basically hands the flow over to Table 80. Hence next stop is Table 80.
 
-**Note :** The first five flow entries in this table are related to ARP processing "aa:bb:cc:dd:ee:ff" and will be explained in [Part D Section 12](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_d). The sixth and seventh flow entries in this table are for inter node flow patterns and it will be will be explained in Section 9.
+**Note :** The first five flow entries in this table are related to ARP processing "aa:bb:cc:dd:ee:ff" and will be explained in [Part D Section 12](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_d). The sixth and seventh flow entries in this table are for inter node flow patterns and it will be explained in Part C Section 9.
 
 ## 7.8 L2ForwardingCalc Table #80
 
