@@ -874,7 +874,7 @@ So bit 16 must be "1", and that is being verified in "reg0". The first four bits
 
 # 6. Phase 3 - Backend Pod to Service 
 
-In this section the response from backend1 pod to the frontend pod will be explained. However the title above says "backend pod to service traffic" ? Why ? 
+In this section the response from backend1 pod to the frontend pod will be explained. However the title above says "Backend Pod to Service" ? Why ? 
 
 The flow which made its way to the backend1 pod (in Section 5) had the source IP of frontend pod (10.222.1.48) and destination IP of backend1 pod (10.222.1.47). Hence backend1 pod will reply to frontend pod with its own IP (10.222.1.47) which is expected by any TCP/IP based communication. OVS could easily deliver the response to frontend pod directly.  **But this would break the communication.** The reason is when the frontend pod had initiated the connection (in Section 4) the source IP of the flow was frontend pod IP but the destination IP was backendsvc service IP (10.104.65.133). This destination service IP got DNATed by iptables to the destination IP of backend1 pod (10.222.1.47) in Section 4.8.  From frontend pod' s point of view it is communicating with backendsvc service IP. Because of this; return flow from backend1 pod to frontend pod should be **SNATed** now by iptables and be delivered to the frontend pod with the IP of the backendsvc service IP as the source IP. Hence OVS needs to steer the return flow from backend1 pod to frontend pod to the Worker 1 node' s Kernel IP Stack for iptables processing.
 
