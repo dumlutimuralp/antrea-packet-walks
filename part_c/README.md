@@ -17,7 +17,7 @@ The flow that will be explained in this section is shown below.
 As shown in [Part A Section 3.2](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_a/README.md#32-test-application), a simple "curl backendsvc" on frontend pod would initiate this request. Shown below.
 
 <pre><code>
-vmware@master:~$ k exec -it frontend -- sh
+vmware@master:~$ kubectl exec -it frontend -- sh
 / # curl backendsvc
 <b>OUTPUT OMITTED</b>
 </code></pre>
@@ -741,7 +741,7 @@ When the current flow gets to tunnel0 (genev_sys_6081) interface on Worker 1 nod
 To verify how Worker 1 node encapsulates the flows, a quick tcpdump on the Worker 1 node ens160 interface on UDP 6081, which is GENEVE port, would reveal the source and destination IP/MAC of this flow. 
 
 <pre><code>
-vmware@master:~$ k exec -it frontend -- sh
+vmware@master:~$ kubectl exec -it frontend -- sh
 / # curl backendsvc
 Praqma Network MultiTool (with NGINX) - backend2 - 10.222.2.34/24
 </code></pre>
@@ -1105,7 +1105,7 @@ The flow which made its way to the backend2 pod (in Section 9) had the source IP
 To verify how backend2 pod responds to requests from the frontend pod, a quick tcpdump on the backend2 pod would reveal the source and destination IP/MAC of this flow. It is shown below.
 
 <pre><code>
-vmware@master:~$ k exec -it frontend -- sh
+vmware@master:~$ kubectl exec -it frontend -- sh
 / # curl backendsvc
 Praqma Network MultiTool (with NGINX) - backend2 - 10.222.2.34/24
 </code></pre>
@@ -1113,7 +1113,7 @@ Praqma Network MultiTool (with NGINX) - backend2 - 10.222.2.34/24
 while performing curl on frontend pod (as shown above), in another ssh session to the Kubernetes master node :
 
 <pre><code>
-vmware@master:~$ k exec -it backend2 -- sh
+vmware@master:~$ kubectl exec -it backend2 -- sh
 / #  tcpdump -en
 tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
 listening on eth0, link-type EN10MB (Ethernet), capture size 262144 bytes
@@ -1353,7 +1353,7 @@ When the current flow gets to tunnel0 (genev_sys_6081) interface on Worker 2 nod
 To verify how Worker 2 node encapsulates the flows, a quick tcpdump on the Worker 2 node ens160 interface on UDP 6081, which is GENEVE port, would reveal the source and destination IP/MAC of this flow. 
 
 <pre><code>
-vmware@master:~$ k exec -it frontend -- sh
+vmware@master:~$ kubectl exec -it frontend -- sh
 / # curl backendsvc
 Praqma Network MultiTool (with NGINX) - backend2 - 10.222.2.34/24
 </code></pre>
