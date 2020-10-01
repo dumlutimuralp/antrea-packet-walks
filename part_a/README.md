@@ -18,12 +18,7 @@ Antrea OVS container within Antrea Agent Pod runs the OVS daemons ovsdb-server a
 
 ![](2020-09-15-20-19-07.png)
 
-Above diagram is copied from [here](https://github.com/vmware-tanzu/antrea/blob/master/docs/ovs-pipeline.md)(OVS Pipeline at Antrea' s project repo on Github) showing the actual steps in the pipeline.
-
-Antrea team has already done an awesome job in explaining these steps with extreme details. 
-
-**The purpose of this article is to walk the reader through an actual flow pattern between a frontend pod to a Kubernetes service and look at things from that specific flow' s point of view with some different details and more wording.**
-
+Above diagram is copied from [here](https://github.com/vmware-tanzu/antrea/blob/master/docs/ovs-pipeline.md)(OVS Pipeline at Antrea' s project repo on Github) showing the actual steps in the pipeline. Antrea team has already done an awesome job in explaining each table in this diagram with extreme details. As mentioned in the beginning, the aim of this article is explaining each OVS table from the flow' s point of view with some other details and more explanations.
 
 # 3. Test Environment
 
