@@ -1,13 +1,13 @@
-# Section 4-5-6-7
+# PART B
 
-This section explains the packet flow between frontend and backend pods, which are both on the same Kubernetes node, in four phases.
+This section explains the packet flow between frontend and backend pods, which are both on the same Kubernetes node, in four main steps as shown below.
 
-- [4. Phase 1 Frontend to Service](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_b/README.md#4-phase-1---frontend-to-service)
-- [5. Phase 2 Service to Backend Pod](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_b/README.md#5-phase-2---service-to-backend-pod)
-- [6. Phase 3 Backend Pod to Service](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_b/README.md#6-phase-3---backend-pod-to-service)
-- [7. Phase 4 Service to Frontend](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_b/README.md#7-phase-4---service-to-frontend)
+- [4. Frontend to Service](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_b/README.md#4-Frontend-to-service)
+- [5. Service to Backend Pod](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_b/README.md#5-Service-to-backend-pod)
+- [6. Backend Pod to Service](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_b/README.md#6-Backend-pod-to-service)
+- [7. Service to Frontend](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_b/README.md#7-Service-to-frontend)
 
-# 4. Phase 1 - Frontend to Service
+# 4. Frontend to Service
 [Back to table of contents](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_b/README.md#part-b)
 
 The flow that will be explained in this section is shown below.
@@ -367,9 +367,9 @@ KUBE-SEP-QQKVVTQCCVWQJVWT  all  --  0.0.0.0/0            0.0.0.0/0            /*
 vmware@worker1:~$ 
 </code></pre>
 
-Next phase is the flow being sent from backendsvc service to one of the backend pods backing that service and the processing of that flow is explained in the next section. 
+Next step is the flow to be sent from backendsvc service to one of the backend pods backing that service and the processing of that flow is explained in the next section. 
 
-# 5. Phase 2 - Service to Backend Pod
+# 5. Service to Backend Pod
 [Back to table of contents](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_b/README.md#part-b)
 
 The **assumption at this stage is, in the previous, kube-proxy managed NAT rules in iptables translated the backendsvc service IP to the backend1 pod' s IP (which is local to Worker 1 node)** to service the request that came from the frontend pod in the previous section. The other scenario, in which iptables translates the flow to backend2 pod IP, will be explained in [Part C](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_c).
@@ -389,7 +389,7 @@ At this stage, the current flow come backs to OVS on the antrea-gw0 port (right 
 
 This flow will be matched against a flow entry in each OVS Table, processed top to bottom in each individual table, based on the priority value of the flow entry in the table.
 
-**Note :** Notice that not only the destination IP but also the source and destination MAC addresses also have changed (from the previous phase - Section 4).
+**Note :** Notice that not only the destination IP but also the source and destination MAC addresses also have changed (from the previous step, Section 4).
 
 To verify the Ethernet and IP headers of the flow, a quick tcpdump on the antrea-gw0 interface of the Worker 1 node would reveal the source and destination IP/MAC of this flow. It is shown below.
 
@@ -516,7 +516,7 @@ Table 50 has flow entries which correspond to the egress rules configured in Kub
 
 In this section the current flow will be matched against the egress rules of the Kubernetes Network Policy "frontendpolicy"; since it is the policy which is applied to the frontend pod and frontend pod is the initiator of the flow. 
 
-In the previous section (Section 4) the flow could not be matched against The Kubernetes Network Policy "frontendpolicy", instead bypassed all the EgressRule tables. Because that flow' s destination IP was still the backendsvc service IP and Kubernetes Network Policy would not make an accurate check in that case and legitimate flows would have been blocked. This is the reason as to why the flow in Section 4 bypassed all the Egress Rule tables and got redirected to antrea-gw0 interface onwards to Kernel IP stack for iptables rule processing. Only after kube-proxy managed iptables rules applied DNAT on that flow (in Phase 1), which essentially translated the destination backendsvc service IP to one of the backend pods IP, then the new flow in this current phase, which is Phase 2, can be processed by Kubernetes Network Policy "frontendpolicy" as will be explained in this step. 
+In the previous section (Section 4) the flow could not be matched against The Kubernetes Network Policy "frontendpolicy", instead bypassed all the EgressRule tables. Because that flow' s destination IP was still the backendsvc service IP and Kubernetes Network Policy would not make an accurate check in that case and legitimate flows would have been blocked. This is the reason as to why the flow in Section 4 bypassed all the Egress Rule tables and got redirected to antrea-gw0 interface onwards to Kernel IP stack for iptables rule processing. Only after kube-proxy managed iptables rules applied DNAT on that flow (in Section 4), which essentially translated the destination backendsvc service IP to one of the backend pods IP, then the current flow can be processed by Kubernetes Network Policy "frontendpolicy" as will be explained in this step. 
 
 The content of the "frontendpolicy" is shown below.
 
@@ -880,7 +880,7 @@ The logic of "reg0=-0x10000/0x10000" in the flow entry is that the first 0x10000
 
 So bit 16 must be "1", and that is being verified in "reg0". The first four bits on the left hand side is not worth to mention hence the desired value and actual value are both shown as "0x10000". 
 
-# 6. Phase 3 - Backend Pod to Service
+# 6. Backend Pod to Service
 [Back to table of contents](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_b/README.md#part-b)
 
 In this section the response from backend1 pod to the frontend pod will be explained. However the title above says "Backend Pod to Service" ? Why ? 
@@ -1007,7 +1007,7 @@ The second flow entry checks whether if the flow is not new and tracked ("ct_sta
 
 The third flow entry checks if the flow is INVALID but TRACKED, basically it drops all these types of flows.
 
-The current flow from backend1 pod to frontend pod is NOT NEW, it is the response to the flow explained in Section 5. The current flow is also a TRACKED flow, so its "ct_state" is "-new+trk". The "ct_mark" field of the flow was set to "0x20" as explained back in section 5.10 (when the request from frontend pod to service to backend1 pod communication was processed by Table 105 previously in Phase 2) 
+The current flow from backend1 pod to frontend pod is NOT NEW, it is the response to the flow explained in Section 5. The current flow is also a TRACKED flow, so its "ct_state" is "-new+trk". The "ct_mark" field of the flow was set to "0x20" as explained back in section 5.10 (when the request from frontend pod to service to backend1 pod communication was processed by Table 105 previously in Section 5) 
 
 Hence the current flow will match all the conditions in the **second** flow entry in the flow table highlighted above. There are two actions specified in that second flow entry. First action is to set the destination MAC to "4e:99:08:c1:53:be" which is the antrea-gw0 MAC on the Worker 1 node. (by 0x4e9908c153be->NXM_OF_ETH_DST[]) The second action in the same flow entry is handing the flow over to the next table which is table 40 (resubmit(,40). So next stop is Table 40.
 
@@ -1363,9 +1363,9 @@ KUBE-SEP-QQKVVTQCCVWQJVWT  all  --  0.0.0.0/0            0.0.0.0/0            /*
 vmware@worker1:~$ 
 </code></pre>
 
-Next phase is the flow being sent from backendsvc service to the frontend pod and the processing of that flow is explained in the next section. 
+Next step is the flow to be sent from backendsvc service to the frontend pod and the processing of that flow and that is explained in the next section. 
 
-# 7. Phase 4 - Service to Frontend
+# 7. Service to Frontend
 [Back to table of contents](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_b/README.md#part-b)
 
 In this section the response from backendsvc service to the frontend pod will be explained. 
