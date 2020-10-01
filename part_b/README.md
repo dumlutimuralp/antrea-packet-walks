@@ -367,7 +367,7 @@ KUBE-SEP-QQKVVTQCCVWQJVWT  all  --  0.0.0.0/0            0.0.0.0/0            /*
 vmware@worker1:~$ 
 </code></pre>
 
-Next step is the flow to be sent from backendsvc service to one of the backend pods backing that service and the processing of that flow is explained in the next section. 
+Next step is the flow to be sent from backendsvc service to one of the backend pods backing that service and the processing of that flow and that is explained in the next section. 
 
 # 5. Service to Backend Pod
 [Back to table of contents](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_b/README.md#part-b)
