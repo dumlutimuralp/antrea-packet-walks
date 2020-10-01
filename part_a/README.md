@@ -36,7 +36,7 @@ worker1   Ready    <none>   20d   v1.18.8   10.79.1.201   <none>        Ubuntu 1
 worker2   Ready    <none>   20d   v1.18.8   10.79.1.202   <none>        Ubuntu 18.04.4 LTS   4.15.0-112-generic   docker://19.3.11
 </code></pre>
 
-This Kubernetes cluster is bootstrapped using '[kubeadm]'(https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/). Antrea relies on nodeipam controller for Pod IP address assignment, hence the *--pod-network-cidr* (as 10.222.0.0/16) kubeadm parameter is used. More info on this requirement is [here](https://github.com/vmware-tanzu/antrea/blob/master/docs/getting-started.md#ensuring-requirements-are-satisfied).
+This Kubernetes cluster is bootstrapped using '[kubeadm](https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/)'. Antrea relies on nodeipam controller for Pod IP address assignment, hence the *--pod-network-cidr* (as 10.222.0.0/16) kubeadm parameter is used. More info on this requirement is [here](https://github.com/vmware-tanzu/antrea/blob/master/docs/getting-started.md#ensuring-requirements-are-satisfied).
 
 Antrea installation is just one line of command as mentioned [here](https://github.com/vmware-tanzu/antrea/blob/master/docs/getting-started.md#installation)
 
