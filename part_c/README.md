@@ -8,7 +8,7 @@ This section explains the packet flow between frontend and backend pods, which a
 - [Phase 4 Service to Frontend](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_c/README.md#11-phase-4---service-to-frontend-pod)
 
 # 8. Phase 1 - Frontend Pod to Service
-[Back to table of contents]
+[Back to table of contents](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_c/README.md#part-c)
 
 The flow that will be explained in this section is shown below.
 
@@ -366,7 +366,8 @@ vmware@worker1:~$
 
 Next phase is the flow being sent from backendsvc service to one of the backend pods backing that service and the processing of that flow is explained in the next section. 
 
-# 9. Phase 2 - Service to Backend Pod 
+# 9. Phase 2 - Service to Backend Pod
+[Back to table of contents](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_c/README.md#part-c)
 
 The **assumption is that, in the previous phase, kube-proxy driven NAT rules in iptables translated the backendsvc service IP to the backend2 pod' s IP (which is on Worker 2 node)** to service the request that came from the frontend pod in the previous section. 
 
@@ -760,6 +761,7 @@ The source and destination IP/MAC are the ens160 interfaces of the Worker 1 and 
 **Note:** Notice "vni 0x0" that is the actual network ID used in the GENEVE header for this traffic. Apparently no specific ID needs to be used cause OVS keeps track of each flow individually.
 
 ## 9.11 Worker 2 Node OVS Flow Process
+[Back to table of contents](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_c/README.md#part-c)
 
 When the Worker 2 node receives the flow, the Linux Kernel IP stack reads the GENEVE header, strips it out and then sends the flow over to the tunnel0 (genev_sys_6081) interface.
 
@@ -1094,6 +1096,7 @@ The logic of "reg0=-0x10000/0x10000" in the flow entry is that the first 0x10000
 So bit 16 must be "1", and that is being verified in "reg0". The first four bits on the left hand side is not worth to mention hence the desired value and actual value are both shown as "0x10000". 
 
 # 10. Phase 3 - Backend Pod to Service
+[Back to table of contents](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_c/README.md#part-c)
 
 In this section the response from backen2 pod (on Worker 2 node) to the frontend pod (on Worker 1 node) will be explained. However the title above says "Backend Pod to Service" ? Why ? 
 
@@ -1372,6 +1375,7 @@ The first line in the tcpdump output above is the ingress GENEVE flow on the Wor
 **Note:** Notice "vni 0x0" that is the actual network ID used in the GENEVE header for this traffic. Apparently no specific ID needs to be used cause OVS keeps track of each flow individually.
 
 ## 10.11 Worker 1 Node OVS Flow Process
+[Back to table of contents](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_c/README.md#part-c)
 
 When the Worker 1 node receives the flow, the Linux Kernel IP stack reads the GENEVE header, strips it out and then sends the flow over to the tunnel0 (genev_sys_6081) interface.
 
@@ -1806,6 +1810,7 @@ vmware@worker1:~$
 Next phase is the flow being sent from backendsvc service to the frontend pod and the processing of that flow is explained in the next section. 
 
 # 11. Phase 4 - Service to Frontend Pod
+[Back to table of contents](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_c/README.md#part-c)
 
 In this section the response from backendsvc service to the frontend pod will be explained. 
 
