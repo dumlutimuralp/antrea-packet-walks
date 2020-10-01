@@ -24,6 +24,14 @@ vmware@master:~$ k exec -it frontend -- sh
 
 This flow comes to OVS on the frontend pod port. Basically this flow is frontend pod accessing the backendsvc service on TCP port 80. Backendsvc service is backed by backend1 and backend2 pods, as shown in kubectl outputs in [Part A Section 3.2](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_a#32-test-application).
 
+**********************************************
+**********************************************
+**********************************************
+TCPDUMP
+**********************************************
+**********************************************
+**********************************************
+
 At this stage, the current flow has the following values in the Ethernet and IP headers.
 
 - Source IP = 10.222.1.48 (Frontend pod IP)
@@ -378,35 +386,37 @@ As mentioned in the assumption above, the kube-proxy managed iptables NAT rule D
 
 ![](2020-09-21-18-05-57.png)
 
-Basically this flow is the service to backend1 pod communication and it would have the following values in the Ethernet and IP headers.
+To verify the Ethernet and IP headers of this flow, a quick tcpdump on the antrea-gw0 interface of the Worker 1 node would reveal the source and destination IP/MAC of this flow. 
+
+While performing "curl" on frontend pod, connect to the Kubernetes Worker 1 node and get tcpdump. As shown below.
+
+<pre><code>
+vmware@master:~$ kubectl exec -it frontend -- sh
+/ # curl backendsvc
+Praqma Network MultiTool (with NGINX) - backend1 - 10.222.1.47/24
+</code></pre>
+
+<pre><code>
+vmware@worker1:~$ sudo tcpdump -en -i antrea-gw0 host 10.222.1.47
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on antrea-gw0, link-type EN10MB (Ethernet), capture size 262144 bytes
+<b>OUTPUT OMITTED</b>
+21:37:41.789071 <b>4e:99:08:c1:53:be > f2:32:d8:07:e2:a6</b>, ethertype IPv4 (0x0800), length 74: <b>10.222.1.48.53128 > 10.222.1.47.80</b>: Flags [S], seq 1929465462, win 64860, options [mss 1410,sackOK,TS val 3904428111 ecr 0,nop,wscale 7], length 0
+<b>OUTPUT OMITTED</b>
+</code></pre>
+
+**Note 1:** For simplicity, the ARP requests/replies between antrea-gw0, frontend pod and backend1 pod are not shown in the above output. ARP process will be explained in [Part D Section 12](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_d).
+
+**Note 2 :** Notice that not only the destination IP but also the source and destination MAC addresses also have changed (from the previous step, Section 8).
+
+Basically the current flow has the following values in the Ethernet and IP headers.
 
 - Source IP = 10.222.1.48 (frontend pod IP)
 - Destination IP = 10.222.1.47 (backend1 pod IP)
 - Source MAC = 4e:99:08:c1:53:be (antrea-gw0 interface MAC on Worker 1)
 - Destination MAC = f2:32:d8:07:e2:a6 (backend1 Pod MAC) 
 
-**Note :** Notice that not only the destination IP but also the source and destination MAC addresses also have changed (from the previous step, Section 4).
-
-To verify the Ethernet and IP headers of the flow (which are shown above), a quick tcpdump on the antrea-gw0 interface of the Worker 1 node would reveal the source and destination IP/MAC of this flow. It is shown below.
-
-<pre><code>
-vmware@master:~$ k exec -it frontend -- sh
-Praqma Network MultiTool (with NGINX) - backend1 - 10.222.1.47/24
-</code></pre>
-
-while performing on frontend pod (as shown above), then in another ssh session to the Kubernetes Worker 1 node :
-
-<pre><code>
-vmware@worker1:~$ sudo tcpdump -en -i antrea-gw0 host 10.222.1.47
-tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
-listening on antrea-gw0, link-type EN10MB (Ethernet), capture size 262144 bytes
-21:37:41.789071 <b>4e:99:08:c1:53:be > f2:32:d8:07:e2:a6</b>, ethertype IPv4 (0x0800), length 74: <b>10.222.1.48.53128 > 10.222.1.47.80</b>: Flags [S], seq 1929465462, win 64860, options [mss 1410,sackOK,TS val 3904428111 ecr 0,nop,wscale 7], length 0
-<b>OUTPUT OMITTED</b>
-</code></pre>
-
-**Note 1:** For simplicity, the ARP requests/replies between antrea-gw0, frontend pod and backend1 pod are not shown in the above output. 
-
-The highlighted flow above will be matched against a flow entry in each OVS Table, processed top to bottom in each individual table, based on the priority value of the flow entry in the table.
+This flow will be matched against a flow entry in each OVS Table, processed top to bottom in each individual table, based on the priority value of the flow entry in the table.
 
 ## 5.1 Classifier Table #0
 
