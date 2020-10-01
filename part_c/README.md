@@ -14,7 +14,7 @@ The flow that will be explained in this section is shown below.
 
 ![](2020-09-16-17-49-42.png)
 
-As shown in [Part A Section 3.2](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_a/README.md#32-test-application), a simple "curl backendsvc" request on frontend pod would initiate this request. Below.
+As shown in [Part A Section 3.2](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_a/README.md#32-test-application), a simple "curl backendsvc" on frontend pod would initiate this request. Below.
 
 <pre><code>
 vmware@master:~$ k exec -it frontend -- sh
