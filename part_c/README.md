@@ -201,7 +201,7 @@ So bit 16 must be "1", and that is being verified in "reg0". The first four bits
 
 At this stage, the Kernel IP stack of Worker 1 node receives the flow from antrea-gw0 interface and the flow will  is processed by iptables NAT rules. Iptables NAT rules on Worker 1 node are shown below.
 
-Basically Kube Services chain "KUBE-SVC-EKL7ZEFK3VFJKKGJ" applies destination NAT on flows destined to backendsvc service IP and picks either backend1 or backend2 as the destination. This is typical Kube-proxy managed, iptables driven "ClusterIP" type of Kubernetes service functionality which is providing distributed load balancing for flows within a Kubernetes cluster.
+Basically Kube Services chain "KUBE-SVC-EKL7ZEFK3VFJKKGJ" applies destination NAT on flows destined to backendsvc service IP and picks either backend1 pod or backend2 pod as the destination. This is typical kube-proxy managed, iptables driven "ClusterIP" type of Kubernetes service functionality which is providing distributed load balancing for flows within a Kubernetes cluster.
 
 <pre><code>
 vmware@worker1:~$ sudo iptables -t nat -L -n
