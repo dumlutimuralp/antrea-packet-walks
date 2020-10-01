@@ -4,7 +4,7 @@ _**This disclaimer informs readers that the views, thoughts, and opinions expres
 
 This article explains the step by step packet walks for a given application flow in the Open vSwitch (OVS) dataplane implemented by Antrea CNI within a Kubernetes cluster. The high level packet walks and the OVS Pipeline are already explained [here](https://github.com/vmware-tanzu/antrea/blob/master/docs/architecture.md#pod-networking) and [here](https://github.com/vmware-tanzu/antrea/blob/master/docs/ovs-pipeline.md) at Project Antrea' s page on Github.
 
-The purpose of this article is to walk the reader through an actual flow pattern between a frontend pod to a Kubernetes service and look at things from that specific flow' s point of view with some other details and more wording.
+The purpose of this article is to walk the reader through an actual flow pattern between a frontend pod to a Kubernetes service and explain the forwarding decisions made from that specific flow' s point of view with some other details and more wording.
 
 Special thanks to [Quan Tian](https://github.com/tnqn), [Wenying Dong](https://github.com/wenyingd), [Ran Gu](https://github.com/gran-vmv) for responding to my queries about OVS registers and forwarding logic. 
 
