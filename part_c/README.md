@@ -750,7 +750,7 @@ The source and destination IP/MAC are the ens160 interfaces of the Worker 1 and 
 
 **Note:** Notice "vni 0x0" that is the actual network ID used in the GENEVE header for this traffic. Apparently no specific ID needs to be used cause OVS keeps track of each flow individually.
 
-# 9.11 Worker 2 Node OVS Flow Process
+## 9.11 Worker 2 Node OVS Flow Process
 
 When the Worker 2 node receives the flow, the Linux Kernel IP stack reads the GENEVE header, strips it out and then sends the flow over to the tunnel0 (genev_sys_6081) interface.
 
@@ -825,7 +825,7 @@ Table #40 on Worker 2 node is shown below.
 <pre><code>
 vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-fv5x9 -c antrea-ovs -- ovs-ofctl dump-flows br-int table=40 --no-stats
  cookie=0x1040000000000, table=40, priority=200,ip,nw_dst=10.96.0.0/12 actions=mod_dl_dst:02:d8:4e:3f:92:1d,load:0x2->NXM_NX_REG1[],load:0x1->NXM_NX_REG0[16],resubmit(,105)
- cookie=0x1000000000000, table=40, priority=0 actions=resubmit(,50)
+ <b>cookie=0x1000000000000, table=40, priority=0 actions=resubmit(,50)</b>
 vmware@master:~$ 
 </code></pre>
 
@@ -833,7 +833,7 @@ This table in essence checks whether if the flow is destined to a Kubernetes ser
 
 The table has only two flow entries. The first flow entry checks whether if the destination IP of the flow is part of the service CIDR range configured in the cluster (which is 10.96.0.0/12); if it does, then certain actions are taken on the flow to steer the flow to the antrea-gw0 interface on the node.  
 
-The destination IP of the current flow is backend2 pod IP (10.222.2.34) and it does not fall into the service CIDR range in the first flow entry in Table 40. Hence the current flow will match the second/last entry. The action specified in the last flow entry is to basically hand over the flow to Table 50 (actions=resubmit(,50)). So next stop is Table 50.
+The destination IP of the current flow is backend2 pod IP (10.222.2.34) and it does not fall into the service CIDR range in the first flow entry in Table 40. Hence the current flow will match <b>the second/last entry</b>. The action specified in the last flow entry is to basically hand over the flow to Table 50 (actions=resubmit(,50)). So next stop is Table 50.
 
 **Note :** In the OVS Pipeline diagram at Antrea Project' s Github repo, there are tables 45-49 before Table50. However those tables are in use only when ClusterNetworkPolicy (CNP) feature of Antrea is used. In this Antrea environment, CNP is not used. 
 
@@ -1069,7 +1069,7 @@ vmware@master:~$
 
 This table' s job is simple. First flow entry in this table first reads the value in register reg0[16]. If the value of this register is "1" in decimal, that means the destination MAC address is known to OVS and the flow should be able to get forwarded (otherwise it would get dropped). The same flow entry has an action defined as "actions=output:NXM_NX_REG1[]". What this action does is it reads the value in "NXM_NX_REG1" to determine the OF port this flow will be sent through and then sends the flow onwards to that port.
 
-The current flow' s reg0[16] bit was set to "0x1" (1 in decimal)  back in DNAT Table 40 and also the value of REG1 was set to "0x23" (35 in decimal) back in Table 80 in Section 9.11.7.  "35" is the OF Port ID of backend2 pod. **Hence the current flow is sent onwards to the backend2 pod.**
+The current flow' s reg0[16] bit was set to "0x1" (1 in decimal)  back in DNAT Table 40 and the value of REG1 was set to "0x23" (35 in decimal) also back in Table 80 in Section 9.11.7.  "35" is the OF Port ID of backend2 pod. **Hence the current flow is sent onwards to the backend2 pod.**
 
 **Note :** The second flow entry in this table obviously drops the flows which do not have their "reg0[16]" register set.
 
@@ -1125,5 +1125,212 @@ This flow will come to OVS on backend2 pod port. When this flow comes to Worker 
 ![](2020-09-30_23-54-39.png)
 
 This flow will be matched against a flow entry in each OVS Table (first on Worker 2 node, then on Worker 1 node), processed top to bottom in each individual table, based on the priority value of the flow entry in the table.
+
+## 10.1 Classifier Table #0
+
+Table #0 on Worker 2 node is shown below.
+
+<pre><code>
+vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-fv5x9 -c antrea-ovs -- ovs-ofctl dump-flows br-int table=0 --no-stats
+ cookie=0x1000000000000, priority=200,in_port="antrea-gw0" actions=load:0x1->NXM_NX_REG0[0..15],resubmit(,10)
+ cookie=0x1000000000000, priority=200,in_port="antrea-tun0" actions=move:NXM_NX_TUN_METADATA0[28..31]->NXM_NX_REG9[28..31],load:0->NXM_NX_REG0[0..15],load:0x1->NXM_NX_REG0[19],resubmit(,30)
+ cookie=0x1030000000000, priority=190,in_port="coredns--d8f62c" actions=load:0x2->NXM_NX_REG0[0..15],resubmit(,10)
+ <b>cookie=0x1030000000000, priority=190,in_port="backend2-202ff6" actions=load:0x2->NXM_NX_REG0[0..15],resubmit(,10)</b>
+ cookie=0x1000000000000, priority=0 actions=drop
+vmware@master:~$ 
+</code></pre>
+
+This table is to classify the traffic by matching it on the ingress port and then setting the register NXM_NX_REG0[0..15] bits as following; "0" for tunnel, "1" for local gateway and "2" for local pod. 
+
+The current flow came from backend2 pod interface hence it matches the <b>fourth</b> flow entry in the above output (which is highlighted). Fourth flow entry sets the reg0[0..15] to "2", meaning that this traffic has come to OVS from a local pod and then it hands the flow over to the next table, which is Table 10 (resubmit(,10)). 
+
+## 10.2 Spoofguard Table #10
+
+Table #10 on Worker 1 node is shown below. "nw_src" refers to the IP address and "dl_src" refers to the MAC address of the pod connected to the respective OF port.
+
+<pre><code>
+vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-fv5x9 -c antrea-ovs -- ovs-ofctl dump-flows br-int table=10 --no-stats
+ cookie=0x1000000000000, table=10, priority=200,ip,in_port="antrea-gw0" actions=resubmit(,30)
+ cookie=0x1000000000000, table=10, priority=200,arp,in_port="antrea-gw0",arp_spa=10.222.2.1,arp_sha=02:d8:4e:3f:92:1d actions=resubmit(,20)
+ cookie=0x1030000000000, table=10, priority=200,arp,in_port="coredns--d8f62c",arp_spa=10.222.2.2,arp_sha=52:9d:f4:63:06:bc actions=resubmit(,20)
+ cookie=0x1030000000000, table=10, priority=200,arp,in_port="backend2-202ff6",arp_spa=10.222.2.34,arp_sha=c6:f4:b5:76:10:38 actions=resubmit(,20)
+ cookie=0x1030000000000, table=10, priority=200,ip,in_port="coredns--d8f62c",dl_src=52:9d:f4:63:06:bc,nw_src=10.222.2.2 actions=resubmit(,30)
+ <b>cookie=0x1030000000000, table=10, priority=200,ip,in_port="backend2-202ff6",dl_src=c6:f4:b5:76:10:38,nw_src=10.222.2.34 actions=resubmit(,30)</b>
+ cookie=0x1000000000000, table=10, priority=0 actions=drop
+vmware@master:~$ 
+</code></pre>
+
+What this table does is verifying if the source IP and MAC of the the traffic matches the IP and MAC assigned to the Pod by Antrea CNI plugin during initial Pod wiring. It implements this check both for IP and ARP traffic.
+
+Since the flow comes from the backend2 pod interface, the flow will match the <b>sixth</b> flow entry in this table. The source IP/MAC of the current flow belongs to backend2 pod; so spoofguard check succeeds. The only action specified in the sixth flow entry is handing the flow over to Table 30 (actions=resubmit(,30)). So next stop is Table 30.
+
+## 10.3 ConntrackTable Table #30
+
+Table #30 on Worker 2 node is shown below.
+
+<pre><code>
+vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-fv5x9 -c antrea-ovs -- ovs-ofctl dump-flows br-int table=30 --no-stats
+ cookie=0x1000000000000, table=30, priority=200,ip <b>actions=ct(table=31</b>,zone=65520)
+vmware@master:~$ 
+</code></pre>
+
+Conntrack table' s job is to start tracking all the traffic. ("ct" action means connection tracking). Any flow that goes through this table will be in "tracked" (trk) state. In generic networking security terms this functionality makes the OVS a stateful connection aware component. Flow then gets handed over to the next table which is Table 31; as seen in the "actions" section of the flow entry. (actions=ct(table=31,)) So next stop is Table 31.
+
+**Note :** Zone ID is explained [here](https://github.com/vmware-tanzu/antrea/blob/master/docs/ovs-pipeline.md#conntracktable-30) as "A ct_zone is simply used to isolate connection tracking rules. It is similar in spirit to the more generic Linux network namespaces, but ct_zone is specific to conntrack and has less overhead." 
+
+## 10.4 ConntrackTable Table #31
+
+Table #31 on Worker 2 node is shown below. 
+
+<pre><code>
+vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-fv5x9 -c antrea-ovs -- ovs-ofctl dump-flows br-int table=31 --no-stats
+ cookie=0x1000000000000, table=31, priority=210,ct_state=-new+trk,ct_mark=0x20,ip,reg0=0x1/0xffff actions=resubmit(,40)
+ cookie=0x1000000000000, table=31, priority=200,ct_state=-new+trk,ct_mark=0x20,ip actions=load:0x2d84e3f921d->NXM_OF_ETH_DST[],resubmit(,40)
+ cookie=0x1000000000000, table=31, priority=190,ct_state=+inv+trk,ip actions=drop
+ <b>cookie=0x1000000000000, table=31, priority=0 actions=resubmit(,40)</b>
+vmware@master:~$ 
+vmware@master:~$ 
+</code></pre>
+
+ConntrackState table processes all the flows that are in tracked state (basically which were handed over by the Conntrack table 30). 
+
+The first flow entry implements three checks. First check is if the flow is not new and tracked ("ct_state=-new means not new, +trk means being tracked) . Second check is if the flow's "ct_mark" field is set to "0x20". Third check is if the flow comes from antrea-gw0 interface. (by checking the reg0[0..15] register of the flow to see if it is set to "0x1" which is "1" in decimal, representing local gateway, as explained back in Table 0) 
+
+The second flow entry checks whether if the flow is not new and tracked ("ct_state=-new means not new, +trk means being tracked). It also checks if the flow's "ct_mark" field is set to "0x20". 
+
+The third flow entry checks if the flow is INVALID but TRACKED, basically it drops all these types of flows.
+
+The current flow from backend2 pod to frontend pod is NOT NEW and it is a TRACKED flow, so its "ct_state" is "-new+trk". However its "ct_mark" field of the is not set. 
+
+Hence the current flow will match the **last** flow entry in the flow table highlighted above. The action in the same flow entry is handing the flow over to the next table which is table 40 (resubmit(,40). So next stop is Table 40.
+
+**Note :** Notice the the flow from Section 9 actually has its **"ct_mark field set to "0x20"** but that action has been taken on the OVS on Worker 1 node. The current flow is the backend2 pod' s response to that flow in Section 9, however **the current flow is still being processed by OVS on Worker 2 node**. OVS on Worker 2 node has got nothing to do with the registers set in OVS on Worker 1 node. The registers are used for connection tracking purposes on each OVS individually. 
+
+## 10.5 DNAT Table #40
+
+Table #40 on Worker 2 node is shown below.
+
+<pre><code>
+vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-fv5x9 -c antrea-ovs -- ovs-ofctl dump-flows br-int table=40 --no-stats
+ cookie=0x1040000000000, table=40, priority=200,ip,nw_dst=10.96.0.0/12 actions=mod_dl_dst:02:d8:4e:3f:92:1d,load:0x2->NXM_NX_REG1[],load:0x1->NXM_NX_REG0[16],resubmit(,105)
+ <b>cookie=0x1000000000000, table=40, priority=0 actions=resubmit(,50)</b>
+vmware@master:~$ 
+</code></pre>
+
+This table in essence checks whether if the flow is destined to a Kubernetes service so that it can redirect the flow to the antrea-gw0. 
+
+The table has only two flow entries. The first flow entry checks whether if the destination IP of the flow is part of the service CIDR range configured in the cluster (which is 10.96.0.0/12); if it does, then certain actions are taken on the flow to steer the flow to the antrea-gw0 interface on the node.  
+
+The destination IP of the current flow is frontend pod IP (10.222.1.48) and it does not fall into the service CIDR range in the first flow entry in Table 40. Hence the current flow will match the second/last entry. The action specified in the last flow entry is to basically hand over the flow to Table 50 (actions=resubmit(,50)). So next stop is Table 50.
+
+**Note :** In the OVS Pipeline diagram at Antrea Project' s Github repo, there are tables 45-49 before Table50. However those tables are in use only when ClusterNetworkPolicy (CNP) feature of Antrea is used. In this Antrea environment, CNP is not used. 
+
+## 10.6 EgressRule Table #50
+
+Table 50 on Worker 2 node is shown below. 
+
+<pre><code>
+vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-fv5x9 -c antrea-ovs -- ovs-ofctl dump-flows br-int table=50 --no-stats
+ <b>cookie=0x1000000000000, table=50, priority=210,ct_state=-new+est,ip actions=resubmit(,70)</b>
+ cookie=0x1050000000000, table=50, priority=200,ip,nw_src=10.222.2.34 actions=conjunction(2,1/2)
+ cookie=0x1050000000000, table=50, priority=190,conj_id=2,ip actions=load:0x2->NXM_NX_REG5[],resubmit(,70)
+ cookie=0x1000000000000, table=50, priority=0 actions=resubmit(,60)
+vmware@master:~$ 
+</code></pre>
+
+The first flow entry in Table 50 above checks whether if the flow is an already established flow (-new,+trk); if it is then there is no need to process the flow against network policy, since Kubernetes Network Policy is STATEFUL by nature. 
+
+The current flow is actually the response of backend2 pod to frontend pod as part of the previous request from frontend pod (the flow which is explained in previous section 9); because of this reason the current flow is not NEW and it is part of an already ESTABLISHED flow.
+
+Hence the current flow will match the **first** flow entry in this table ("ct_state=-new+est"). The action specified in this first flow entry is handing the flow over to Table 70. (actions=resubmit(,70)) So next stop is Table 70. 
+
+**Note :** The second and third flow entries in Table 50 actually correspond to the egress rule used in the Kubernetes Network Policy "backendpolicy" which is not relevant here. As mentioned above, the current flow is the response to the original flow (frontend pod -> backend2 pod) which has been processed by Table 50 already back in Section 9.6 (on Worker 1 node) and Section 9.11.5 (on Worker 2 node).
+
+## 10.7 L3Forwarding Table #70
+
+The Table 70 on Worker 2 node is shown below.
+
+<pre><code>
+vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-fv5x9 -c antrea-ovs -- ovs-ofctl dump-flows br-int table=70 --no-stats
+ cookie=0x1000000000000, table=70, priority=200,ip,dl_dst=aa:bb:cc:dd:ee:ff,nw_dst=10.222.2.1 actions=mod_dl_dst:02:d8:4e:3f:92:1d,resubmit(,80)
+ cookie=0x1030000000000, table=70, priority=200,ip,dl_dst=aa:bb:cc:dd:ee:ff,nw_dst=10.222.2.2 actions=mod_dl_src:02:d8:4e:3f:92:1d,mod_dl_dst:52:9d:f4:63:06:bc,dec_ttl,resubmit(,80)
+ cookie=0x1030000000000, table=70, priority=200,ip,dl_dst=aa:bb:cc:dd:ee:ff,nw_dst=10.222.2.34 actions=mod_dl_src:02:d8:4e:3f:92:1d,mod_dl_dst:c6:f4:b5:76:10:38,dec_ttl,resubmit(,80)
+ cookie=0x1020000000000, table=70, priority=200,ip,nw_dst=10.222.0.0/24 actions=dec_ttl,mod_dl_src:02:d8:4e:3f:92:1d,mod_dl_dst:aa:bb:cc:dd:ee:ff,load:0x1->NXM_NX_REG1[],load:0x1->NXM_NX_REG0[16],load:0xa4f01c8->NXM_NX_TUN_IPV4_DST[],resubmit(,105)
+ <b>cookie=0x1020000000000, table=70, priority=200,ip,nw_dst=10.222.1.0/24 actions=dec_ttl,mod_dl_src:02:d8:4e:3f:92:1d,mod_dl_dst:aa:bb:cc:dd:ee:ff,load:0x1->NXM_NX_REG1[],load:0x1->NXM_NX_REG0[16],load:0xa4f01c9->NXM_NX_TUN_IPV4_DST[],resubmit(,105)</b>
+ cookie=0x1000000000000, table=70, priority=0 actions=resubmit(,80)
+vmware@master:~$ 
+</code></pre>
+
+Basically each flow entry in this flow table checks either the destination IP address or destination MAC address (in some entries both) to make a forwarding decision. 
+
+The current flow' s source and destination MAC and IP address values are still as they are shown back in Section 9.11. Shown below again. 
+
+- Source IP = 10.222.2.34 (backend2 pod IP)
+- Destination IP = 10.222.1.48 (frontend pod IP)
+- Source MAC = c6:f4:b5:76:10:38 (backend2 pod MAC)
+- Destination MAC = 02:d8:4e:3f:92:1d (antrea-gw0 interface MAC on Worker 2 node)
+
+Based on the current flow' s source and destination MAC/IP values. The flow matches the **fifth** flow entry in Table 70, since the destination IP matches the subnet specified in "nw_dst" field. There are several actions in this fifth flow entry which are explained below : 
+
+- First action is to decrement the TTL ("dec_ttl") since this is a routed flow
+
+- Second action is to modify the source MAC address of the flow "mod_dl_src:02:d8:4e:3f:92:1d" to the antrea-gw0 interface MAC of Worker 2 node
+
+- Third action is to modify the destination MAC address of the flow "mod_dl_dst:aa:bb:cc:dd:ee:ff" (When the destination pod is on a different node this global virtual MAC is used. It will be explained in [Part D Section 12](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_d)) 
+
+- Fourth action is to set the "NXM_NX_REG1" bit to "0x1" (by load:0x1 in hex, which is 1 in decimal). This register represents the OF Port ID which this flow will be sent through.  "1" is the OF Port ID for the tunnel0 interface on Worker 2 node (genev_sys_6081 interface on Linux) used for overlay networking between Kubernetes worker nodes. The outputs and diagrams shown in [Part A Section 3.4](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_a#34-identifying-ovs-port-ids-of-port-ids) can be reviewed again to see OF Port ID.
+
+- Fifth action is to set the "NXM_NX_REG0[16]" to "1" (by load:0x1). This value in Reg0[16] means that the destination MAC address in the flow is known to OVS. In other words this MAC address exists in OVS MAC address table (Table 80), which is explained in a seperate section. 
+
+- Sixth action is to set the "NXM_NX_TUN_IPV4_DST" to "0xa4f01c9" which corresponds to 10.79.1.201 in IP. Meaning that the destination node for this flow should be Worker 1 node since 10.79.1.201 is the ens160 interface IP of the Worker 1 node.
+
+- Seventh action is "resubmit(,105)" which basically hands the flow over to Table 105. Hence next stop is Table 105. 
+
+## 10.8 ConntrackCommit Table #105
+
+Table 105 on Worker 2 node is shown below.
+
+<pre><code>
+vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-fv5x9 -c antrea-ovs -- ovs-ofctl dump-flows br-int table=105 --no-stats
+ cookie=0x1000000000000, table=105, priority=200,ct_state=+new+trk,ip,reg0=0x1/0xffff actions=ct(commit,table=110,zone=65520,exec(load:0x20->NXM_NX_CT_MARK[]))
+ cookie=0x1000000000000, table=105, priority=190,ct_state=+new+trk,ip actions=ct(commit,table=110,zone=65520)
+ cookie=0x1000000000000, table=105, priority=0 actions=resubmit(,110)
+vmware@master:~$ 
+</code></pre>
+
+This table is for committing all the new flows for tracking them. This action, ct(commit,), is specifically explained as "Commit the connection to the connection tracking module which will be stored beyond the lifetime of packet in the pipeline." [in OVS docs](https://docs.openvswitch.org/en/latest/tutorials/ovs-conntrack/).
+
+The first flow entry checks whether if the flow is a new flow (+new) and if it is a tracked flow (+trk). The same flow entry also checks if the flow is coming from the gateway interface. This is represented by reg0=0x1/0xffff. Explanation of this is as following. The second part "0xffff" instructs OVS to verify the first 16 bits in reg0, meaning reg0[0..15] and then the first part "0x1" means the result of that check should be "1". So it basically checks reg0[0..15]. The Reg0[0..15] is set by Classifier Table 10 and it is set to "1" if the flow comes from antrea-gw0 interface. 
+
+The second flow entry checks whether if the flow is a new flow (+new) and if it is a tracked flow (+trk). 
+
+The current flow does **NOT** match the first nor the second flow entry in this table. Because the current flow is the response of backend2 pod, hence it is part of an already established flow and it matches the last entry in this table. The action in the last flow entry is specified as "resubmit(,110)" which basically is handing the flow over to the Table 110. So next stop is Table 110.
+
+## 10.9 L2ForwardingOut Table #110
+
+Table 110 on Worker 2 node is shown below.
+
+<pre><code>
+vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-fv5x9 -c antrea-ovs -- ovs-ofctl dump-flows br-int table=110 --no-stats
+ cookie=0x1000000000000, table=110, priority=200,ip,reg0=0x10000/0x10000 actions=output:NXM_NX_REG1[]
+ cookie=0x1000000000000, table=110, priority=0 actions=drop
+vmware@master:~$ 
+</code></pre>
+
+This table' s job is simple. First flow entry in this table first reads the value in register reg0[16]. If the value of this register is "1" in decimal, that means the destination MAC address is known to OVS and the flow should be able to get forwarded (otherwise it would get dropped). The same flow entry has an action defined as "actions=output:NXM_NX_REG1[]". What this action does is it reads the value in "NXM_NX_REG1" to determine the OF port this flow will be sent through and then sends the flow onwards to that port.
+
+The current flow' s reg0[16] bit was set to "0x1" (1 in decimal)  back in Table 70 and the value of REG1 was set to "0x1" (1 in decimal) also back in Table 70 in Section 10.7.  "1" is the OF Port ID of tunnel interface (genev_sys_6081 on Linux) on Worker 2 node. **Hence the current flow is sent onwards to the tunnel0 interface.**
+
+**Note :** The second flow entry in this table obviously drops the flows which do not have their "reg0[16]" register set.
+
+The logic of "reg0=-0x10000/0x10000" in the flow entry is that the first 0x10000 is the desired value of this register. The second 0x10000 is the exact instructions on which specific bit(s) should be verified to match the desired value. Since "0x" is hexadecimal, below is a detailed explanation of the position of the bit that is verified. 
+
+<pre><code>
+23              16  15               8   7               0
+0 0 0 0 | 0 0 0 1   0 0 0 0 |  0 0 0 0   0 0 0 0 | 0 0 0 0
+</code></pre>
+
+So bit 16 must be "1", and that is being verified in "reg0". The first four bits on the left hand side is not worth to mention hence the desired value and actual value are both shown as "0x10000". 
+
 
 # 11. Phase 4 - Service to Frontend Pod
