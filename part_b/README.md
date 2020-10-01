@@ -7,13 +7,19 @@ This section explains the packet flow between frontend and backend pods, which a
 - [Phase 3 Backend Pod to Service](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_b/README.md#6-phase-3---backend-pod-to-service)
 - [Phase 4 Service to Frontend](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_b/README.md#7-phase-4---service-to-frontend)
 
-
-
 # 4. Phase 1 - Frontend to Service
 
 The flow that will be explained in this section is shown below.
 
 ![](2020-09-16-17-49-42.png)
+
+As shown in [Part A Section 32](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_a/README.md#32-test-application), a simple "curl backendsvc" request on frontend pod would initiate this request. Below.
+
+<pre><code>
+vmware@master:~$ k exec -it frontend -- sh
+/ # curl backendsvc
+<b>OUTPUT OMITTED</b>
+</code></pre>
 
 This flow comes to OVS on the frontend pod port. Basically this flow is frontend pod accessing the backendsvc service on TCP port 80. Backendsvc service is backed by backend1 and backend2 pods, as shown in kubectl outputs in [Part A Section 3.2](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_a#32-test-application).
 
@@ -390,7 +396,7 @@ vmware@master:~$ k exec -it frontend -- sh
 Praqma Network MultiTool (with NGINX) - backend1 - 10.222.1.47/24
 </code></pre>
 
-while performing curl on frontend pod (as shown above), then in another ssh session to the Kubernetes Worker 1 node :
+while performing on frontend pod (as shown above), then in another ssh session to the Kubernetes Worker 1 node :
 
 <pre><code>
 vmware@worker1:~$ sudo tcpdump -en -i antrea-gw0 host 10.222.1.47
