@@ -394,7 +394,7 @@ listening on antrea-gw0, link-type EN10MB (Ethernet), capture size 262144 bytes
 
 Note 1: For simplicity, the ARP requests/replies between antrea-gw0, frontend pod and backend2 pod are not shown in the above output.
 
-The highlighted flow above will be matched against a flow entry in each OVS Table, processed top to bottom in each individual table, based on the priority value of the flow entry in the table.
+The highlighted flow above will be matched against a flow entry in each OVS Table (first on Worker 1 node, then on Worker 2 node), processed top to bottom in each individual table, based on the priority value of the flow entry in the table.
 
 ## 9.1 Classifier Table #0
 
@@ -1109,11 +1109,21 @@ listening on eth0, link-type EN10MB (Ethernet), capture size 262144 bytes
 
 **Note 1:** For simplicity, the ARP requests/replies between antrea-gw0, frontend pod and backend1 pod are not shown in the above output.
 
-The source and destination MAC addresses of the first line in the tcpdump output are antrea-gw0 MAC(of Worker 2 node) and backend2 pod MAC (the flow explained in Section 9.11.6)
-The source and destination MAC addresses of the second line in the tcpdump output are backend2 pod MAC and antrea-gw0  MAC (of Worker 2 node) the flow that will be explained in this section)
-The source or destination IP addresses are always frontend pod IP and backend pod IP
+- The source and destination MAC addresses of the first line in the tcpdump output are antrea-gw0 MAC(of Worker 2 node) and backend2 pod MAC (the flow explained in Section 9.11.6)
+- The source and destination MAC addresses of the second line in the tcpdump output are backend2 pod MAC and antrea-gw0  MAC (of Worker 2 node) the flow that will be explained in this section)
+- The source or destination IP addresses are always frontend pod IP and backend pod IP
+
+The response that backend2 pod generates has the following values in the Ethernet and IP headers and this is the flow that this section focuses on.
+
+- Source IP = 10.222.2.34 (backend2 pod IP)
+- Destination IP = 10.222.1.48 (frontend pod IP)
+- Source MAC = c6:f4:b5:76:10:38 (backend2 pod MAC)
+- Destination MAC = 02:d8:4e:3f:92:1d (antrea-gw0 interface MAC on Worker 2 node)
+
+This flow will come to OVS on backend2 pod port. When this flow comes to Worker 1 node, OVS will steer this flow as shown below (to make it processed by Kube-proxy managed iptables NAT rules again)
 
 ![](2020-09-30_23-54-39.png)
 
+This flow will be matched against a flow entry in each OVS Table (first on Worker 2 node, then on Worker 1 node), processed top to bottom in each individual table, based on the priority value of the flow entry in the table.
 
 # 11. Phase 4 - Service to Frontend Pod
