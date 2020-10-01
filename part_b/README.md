@@ -126,7 +126,7 @@ vmware@master:~$
 
 The table has only two flow entries. The first flow entry checks whether if the destination IP of the flow is part of the service CIDR range configured in the cluster (which is 10.96.0.0/12); if it does, then certain actions are taken on the flow to steer the flow to the antrea-gw0 interface on the Worker 1 node.  
 
-The IP of the backendsvc service can be checked as below.
+Although it is shown back in [Part A Section 3.2](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_a#32-test-application), to verify again, the IP of the backendsvc service can be checked as shown below.
 
 <pre><code>
 vmware@master:~$ kubectl get svc
