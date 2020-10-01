@@ -1163,7 +1163,7 @@ The first flow entry checks whether if the flow is a new flow (+new) and if it i
 
 The second flow entry checks whether if the flow is a new flow (+new) and if it is a tracked flow (+trk). 
 
-The current flow does **NOT** match the first nor the second flow entry in this table. Because the current flow is the response of backend1 pod, hence it is part of an already established flow hence it matches the last entry in this table. The action in the last flow entry is specified as "resubmit(,110)" which basically is handing the flow over to the Table 110. So next stop is Table 110.
+The current flow does **NOT** match the first nor the second flow entry in this table. Because the current flow is the response of backend1 pod, hence it is part of an already established flow and it matches the last entry in this table. The action in the last flow entry is specified as "resubmit(,110)" which basically is handing the flow over to the Table 110. So next stop is Table 110.
 
 ## 6.11 L2ForwardingOut Table #110
 
