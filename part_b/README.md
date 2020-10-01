@@ -55,8 +55,8 @@ So next stop is Table 10.
 
 **Note :** "0x" means that it is hexadecimal. For example, 
 
-- "0x2" is 2 × (16 to the power of 0) = 2 x 1 = 2
-- or "0x20" is 2 x (16 to the power of 1) + 0 x (16 to the power of 0)  =  32 + 0 = 32
+- "0x2" is 2 × (16 to the power of 0) = 2 x 1 = 2 (in decimal)
+- or "0x20" is 2 x (16 to the power of 1) + 0 x (16 to the power of 0)  =  32 + 0 = 32 (in decimal)
 
 ## 4.2 Spoofguard Table #10
 
