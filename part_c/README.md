@@ -24,7 +24,7 @@ vmware@master:~$ kubectl exec -it frontend -- sh
 
 This flow comes to OVS on the frontend pod port. Basically this flow is frontend pod accessing the backendsvc service on TCP port 80. Backendsvc service is backed by backend1 and backend2 pods, as shown in kubectl outputs in [Part A Section 3.2](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_a#32-test-application).
 
-At this stage, the current flow has the following values in the Ethernet and IP headers.
+At this stage, the current flow would has the following values in the Ethernet and IP headers.
 
 - Source IP = 10.222.1.48 (Frontend pod IP)
 - Destination IP = 10.104.65.133 (Backendsvc service IP)
@@ -375,14 +375,23 @@ As mentioned in the assumption above, the kube-proxy managed iptables NAT rule D
 
 ![](2020-09-30_17-08-28.png)
 
-Basically this flow is the service to backend2 pod communication and it has the following values in the Ethernet and IP headers.
+Basically this flow is the service to backend2 pod communication and it would have the following values in the Ethernet and IP headers.
 
 - Source IP = 10.222.1.48 (frontend pod IP)
 - Destination IP = 10.222.2.34 (backend2 pod IP)
 - Source MAC = 4e:99:08:c1:53:be (antrea-gw0 interface MAC on Worker 1)
 - Destination MAC = aa:bb:cc:dd:ee:ff (When the destination pod is on a different node this global virtual MAC is used. It will be explained in [Part D Section 12](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_d)) 
 
-To verify how the service to backend pod (backend2 pod in this case) flow comes to OVS (from antrea-gw0 interface), a quick tcpdump on the antrea-gw0 interface on Worker 1 node would reveal the source and destination IP/MAC of this communication. It is shown below.
+**Note :** Notice that not only the destination IP but also the source and destination MAC addresses also have changed (from the previous step, Section 8).
+
+To verify the Ethernet and IP headers of the flow (which are shown above), a quick tcpdump on the antrea-gw0 interface on Worker 1 node would reveal the source and destination IP/MAC of this communication. It is shown below.
+
+<pre><code>
+vmware@master:~$ k exec -it frontend -- sh
+Praqma Network MultiTool (with NGINX) - backend2 - 10.222.2.34/24
+</code></pre>
+
+while performing on frontend pod (as shown above), then in another ssh session to the Kubernetes Worker 1 node :
 
 <pre><code>
 vmware@worker1:~$ sudo tcpdump -i antrea-gw0 -en
@@ -394,7 +403,7 @@ listening on antrea-gw0, link-type EN10MB (Ethernet), capture size 262144 bytes
 <b>OUTPUT OMITTED</b>
 </code></pre>
 
-Note 1: For simplicity, the ARP requests/replies between antrea-gw0, frontend pod and backend2 pod are not shown in the above output.
+**Note 1:** For simplicity, the ARP requests/replies between antrea-gw0, frontend pod and backend2 pod are not shown in the above output.
 
 The highlighted flow above will be matched against a flow entry in each OVS Table (first on Worker 1 node, then on Worker 2 node), processed top to bottom in each individual table, based on the priority value of the flow entry in the table.
 
