@@ -28,4 +28,4 @@ _**Special thanks to [Quan Tian](https://github.com/tnqn), [Wenying Dong](https:
 - [10. Backend Pod to Service](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_c#10-backend-pod-to-service)
 - [11. Service to Frontend](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_c#11-service-to-frontend-pod)
 
-## [PART D - ARP Process and Additional Info](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_d/README.md)
+## [PART D - ARP, Additional Info](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_d/README.md)
