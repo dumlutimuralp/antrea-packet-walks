@@ -1368,7 +1368,7 @@ In this section the response from backendsvc service to the frontend pod will be
 
 In the previous section (6.12) kube-proxy managed iptables NAT rules on Worker 1 node applied SNAT to the flow from backend1 pod to the frontend pod. Hence the current flow has source IP of 10.104.65.133 (backendsvc service IP) and destination IP of 10.222.1.48 (frontend pod IP)
 
-To verify how frontend pod receives the response from the backendsvc, a quick tcpdump on the frontend pod (while generating an http request from the frontend pod) would reveal the source and destination IP/MAC of this communication, which is shown below.
+To verify how frontend pod receives the response from the backendsvc, a quick tcpdump on the frontend pod (while generating an http request from the same frontend pod using curl in a different shell) would reveal the source and destination IP/MAC of this communication, which is shown below.
 
 <pre><code>
 vmware@master:~$ kubectl exec -it frontend -- sh
