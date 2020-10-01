@@ -736,7 +736,7 @@ So bit 16 must be "1", and that is being verified in "reg0". The first four bits
 
 When the flow gets to tunnel0 (genev_sys_6081) interface on Worker 1 node, Linux IP Stack adds the GENEVE headers to the flow with the destination IP address of 10.79.1.202 (which was determined in Table 70 back in Section 9.7 earlier) and source IP of 10.79.1.201 which is Worker 1 node IP. Next the flow is sent through the ens160 interface of the Worker 1 node onwards to the physical network, destined to the Worker 2 node.
 
-To verify how Worker 2 node encapsulates the flows, a quick tcpdump on theW Worker 1 node ens160 interface on UDP 6081, which is GENEVE port, would reveal the source and destination IP/MAC of this flow. 
+To verify how Worker 1 node encapsulates the flows, a quick tcpdump on the Worker 1 node ens160 interface on UDP 6081, which is GENEVE port, would reveal the source and destination IP/MAC of this flow. 
 
 <pre><code>
 vmware@master:~$ k exec -it frontend -- sh
@@ -744,7 +744,7 @@ vmware@master:~$ k exec -it frontend -- sh
 Praqma Network MultiTool (with NGINX) - backend2 - 10.222.2.34/24
 </code></pre>
 
-while performing curl on frontend pod (as shown above), in another ssh session to the Kubernetes master node :
+while performing curl on frontend pod (as shown above), in another ssh session to the Kubernetes Worker 1 node :
 
 <pre><code>
 vmware@worker1:~$ sudo tcpdump -i ens160 -en udp port 6081
@@ -1344,17 +1344,27 @@ So bit 16 must be "1", and that is being verified in "reg0". The first four bits
 
 When the flow gets to tunnel0 (genev_sys_6081) interface on Worker 2 node, Linux IP Stack adds the GENEVE headers to the flow with the destination IP address of 10.79.1.201 (which was determined in Table 70 back in Section 10.7 earlier) and source IP of 10.79.1.202 which is Worker 2 node IP. Next the flow is sent through the ens160 interface of the Worker 2 node onwards to the physical network, destined to the Worker 1 node.
 
-A quick tcpdump on the ens160 interface of the Worker 1 node would reveal this, shown below. UDP 6081 is the GENEVE port.
+To verify how Worker 2 node encapsulates the flows, a quick tcpdump on the Worker 2 node ens160 interface on UDP 6081, which is GENEVE port, would reveal the source and destination IP/MAC of this flow. 
 
 <pre><code>
-vmware@worker1:~$ sudo tcpdump -i ens160 -en udp port 6081
+vmware@master:~$ k exec -it frontend -- sh
+/ # curl backendsvc
+Praqma Network MultiTool (with NGINX) - backend2 - 10.222.2.34/24
+</code></pre>
+
+while performing curl on frontend pod (as shown above), in another ssh session to the Kubernetes Worker 2 node :
+
+<pre><code>
+vmware@worker2:~$ sudo tcpdump -i ens160 -en udp port 6081
+[sudo] password for vmware: 
 tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
 listening on ens160, link-type EN10MB (Ethernet), capture size 262144 bytes
-21:02:21.273147 <b>00:50:56:8f:4e:82 > 00:50:56:8f:1c:f6</b>, ethertype IPv4 (0x0800), length 124: <b>10.79.1.201.12445 > 10.79.1.202.6081</b>: Geneve, Flags [none], vni 0x0, proto TEB (0x6558): <b>4e:99:08:c1:53:be > aa:bb:cc:dd:ee:ff</b>, ethertype IPv4 (0x0800), length 74: <b>10.222.1.48.46490 > 10.222.2.34.80</b>: Flags [S], seq 2799349838, win 64860, options [mss 1410,sackOK,TS val 3988709021 ecr 0,nop,wscale 7], length 0
+14:32:43.976230 00:50:56:8f:4e:82 > 00:50:56:8f:1c:f6, ethertype IPv4 (0x0800), length 124: 10.79.1.201.50308 > 10.79.1.202.6081: Geneve, Flags [none], vni 0x0, proto TEB (0x6558): 4e:99:08:c1:53:be > aa:bb:cc:dd:ee:ff, ethertype IPv4 (0x0800), length 74: 10.222.1.48.40976 > 10.222.2.34.80: Flags [S], seq 3669882487, win 64860, options [mss 1410,sackOK,TS val 4051732790 ecr 0,nop,wscale 7], length 0
+14:32:43.977008 <b>00:50:56:8f:1c:f6 > 00:50:56:8f:4e:82</b>, ethertype IPv4 (0x0800), length 124: <b>10.79.1.202.5599 > 10.79.1.201.6081</b>: Geneve, Flags [none], vni 0x0, proto TEB (0x6558): <b>02:d8:4e:3f:92:1d > aa:bb:cc:dd:ee:ff</b>, ethertype IPv4 (0x0800), length 74: <b>10.222.2.34.80 > 10.222.1.48.40976</b>: Flags [S.], seq 1344714200, ack 3669882488, win 64308, options [mss 1410,sackOK,TS val 3341622948 ecr 4051732790,nop,wscale 7], length 0
 <b>OUTPUT OMITTED</b>
 </code></pre>
 
-The source and destination IP/MAC are the ens160 interfaces of the Worker 1 and Worker 2 nodes. Highlighted above. The inner IP/MAC can also be seen in the same output.
+The first line in the tcpdump output above is the ingress GENEVE flow on the Worker 2 node. The second line in the tcpdump output which is highlighted above is the egress GENEVE flow on the Worker 2 node which corresponds to the response of backend2 pod to frontend pod' s request. The source and destination IP/MAC are the ens160 interfaces of the Worker 1 and Worker 2 nodes. Highlighted above. The inner IP/MAC of the current flow can also be seen in the same output. (The inner source MAC and destination MAC of the current flow were modified back in Table 70 in Section 10.7)
 
 **Note:** Notice "vni 0x0" that is the actual network ID used in the GENEVE header for this traffic. Apparently no specific ID needs to be used cause OVS keeps track of each flow individually.
 
