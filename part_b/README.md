@@ -1004,11 +1004,11 @@ The second flow entry checks whether if the flow is not new and tracked ("ct_sta
 
 The third flow entry checks if the flow is INVALID but TRACKED, basically it drops all these types of flows.
 
-The current flow from backend1 pod to frontend pod is NOT NEW, it is the response to the flow explained in Section 5. The current flow is also a TRACKED flow, so its "ct_state" is "-new+trk". The "ct_mark" field of the current flow was set to "0x20" as explained back in section 5.10 (when the request from frontend pod to service to backend1 pod communication was processed by Table 105 previously in Phase 2) 
+The current flow from backend1 pod to frontend pod is NOT NEW, it is the response to the flow explained in Section 5. The current flow is also a TRACKED flow, so its "ct_state" is "-new+trk". The "ct_mark" field of the flow was set to "0x20" as explained back in section 5.10 (when the request from frontend pod to service to backend1 pod communication was processed by Table 105 previously in Phase 2) 
 
-Hence the current flow will match all the conditions in the second flow entry in the flow table highlighted above. There are two actions specified in that second flow entry. First action is to set the destination MAC to "4e:99:08:c1:53:be" which is the antrea-gw0 MAC on the Worker 1 node. (by 0x4e9908c153be->NXM_OF_ETH_DST[]) The second action in the same flow entry is handing the flow over to the next table which is table 40 (resubmit(,40). So next stop is Table 40.
+Hence the current flow will match all the conditions in the **second** flow entry in the flow table highlighted above. There are two actions specified in that second flow entry. First action is to set the destination MAC to "4e:99:08:c1:53:be" which is the antrea-gw0 MAC on the Worker 1 node. (by 0x4e9908c153be->NXM_OF_ETH_DST[]) The second action in the same flow entry is handing the flow over to the next table which is table 40 (resubmit(,40). So next stop is Table 40.
 
-**Note :** The reason for the destination MAC rewrite (from original destination MAC of frontend pod to new destination MAC of gw0 MAC) is to steer the flow back to Linux Kernel IP stack for the flow to be processed kube-proxy managed iptables NAT rules again. (similar to the way back in 4.8 but this time it will be SNAT, not DNAT. Since the frontend pod should receive the response from backendsvc service IP)
+**Note :** The reason for the destination MAC rewrite (from original destination MAC of frontend pod to new destination MAC which is gw0 MAC) is to steer the flow back to Linux Kernel IP stack for the flow to be processed kube-proxy managed iptables NAT rules again. (similar to the way back in 4.8 but this time it will be SNAT, not DNAT. Since the frontend pod should receive the response from backendsvc service IP)
 
 ## 6.5 DNAT Table #40
 
