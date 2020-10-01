@@ -1395,7 +1395,7 @@ So the current flow has the following values in the Ethernet and IP headers.
 - Source MAC = 4e:99:08:c1:53:be (antrea-gw0 interface MAC on Worker 1)
 - Destination MAC = be:2c:bf:e4:ec:c5 (frontend pod MAC)
 
-This flow will come to OVS on OF port 2, which is the antrea-gw0 port.
+This flow will come to OVS on OF port 2, which is the antrea-gw0 port. Shown below.
 
 ![](2020-09-23-14-56-24.png)
 
