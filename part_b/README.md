@@ -383,7 +383,7 @@ This flow will be matched against a flow entry in each OVS Table, processed top 
 
 **Note :** Notice that not only the destination IP but also the source and destination MAC addresses also have changed (from the previous phase - Section 4).
 
-To verify the Ethernet and IP headers of the flow, a quick tcpdump on the antrea-gw0 interface of the Worker 1 node (while generating an http request from frontend pod) would reveal the source and destination IP/MAC of this flow. It is shown below.
+To verify the Ethernet and IP headers of the flow, a quick tcpdump on the antrea-gw0 interface of the Worker 1 node would reveal the source and destination IP/MAC of this flow. It is shown below.
 
 <pre><code>
 vmware@master:~$ k exec -it frontend -- sh
@@ -878,7 +878,7 @@ In this section the response from backend1 pod to the frontend pod will be expla
 
 The flow which made its way to the backend1 pod (in Section 5) had the source IP of frontend pod (10.222.1.48) and destination IP of backend1 pod (10.222.1.47). Hence backend1 pod will reply to frontend pod with its own IP (10.222.1.47) which is expected by any TCP/IP based communication. OVS could easily deliver the response to frontend pod directly.  **But this would break the communication.** The reason is when the frontend pod had initiated the connection (in Section 4) the source IP of the flow was frontend pod IP but the destination IP was backendsvc service IP (10.104.65.133). This destination service IP got DNATed by iptables to the destination IP of backend1 pod (10.222.1.47) in Section 4.8.  From frontend pod' s point of view it is communicating with backendsvc service IP. Because of this; return flow from backend1 pod to frontend pod should be **SNATed** now by iptables and be delivered to the frontend pod with the IP of the backendsvc service IP as the source IP. Hence OVS needs to steer the return flow from backend1 pod to frontend pod to the Worker 1 node' s Kernel IP Stack for iptables processing.
 
-To verify how backend1 pod responds to requests from the frontend pod, a quick tcpdump on the backend1 pod (while generating an http request from frontend pod) would reveal the source and destination IP/MAC of this flow. It is shown below.
+To verify how backend1 pod responds to requests from the frontend pod, a quick tcpdump on the backend1 pod would reveal the source and destination IP/MAC of this flow. It is shown below.
 
 <pre><code>
 vmware@master:~$ k exec -it frontend -- sh
