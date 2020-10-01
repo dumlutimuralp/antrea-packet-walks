@@ -906,8 +906,8 @@ listening on eth0, link-type EN10MB (Ethernet), capture size 262144 bytes
 
 **Note 1:** For simplicity, the ARP requests/replies between antrea-gw0, frontend pod and backend1 pod are not shown in the above output. 
 
-- The source and destination MAC addresses of the first line is from antrea-gw0 MAC to backend1 pod MAC (the flow explained in Section 5)
-- The source and destination MAC addresses of the second line is from backend1 pod MAC to frontend pod MAC (the flow that will be explained in this section)
+- The source and destination MAC addresses of the first line in the tcpdump output from antrea-gw0 MAC and backend1 pod MAC (the flow explained in Section 5)
+- The source and destination MAC addresses of the second line in the tcpdump output are backend1 pod MAC and frontend pod MAC (the flow that will be explained in this section)
 - The source or destination IP addresses are always frontend pod IP and backend pod IP
 
 **Note 2:** Reason that backend1 pod populates the destination MAC address with frontend pod' s MAC (rather than antrea-gw0 MAC which the request came in with as source MAC) is that frontend pod and backend1 pod are on the same subnet, hence frontend pod replies to backend1 pod' s ARP request directly. So backend1 pod has the frontend pod IP/MAC in its ARP table.
