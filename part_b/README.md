@@ -1195,7 +1195,7 @@ So bit 16 must be "1", and that is being verified in "reg0". The first four bits
 
 The flow is now in Kernel IP stack of Worker 1 node to be processed by kube-proxy managed iptables NAT rules. Iptables NAT rules on Worker 1 node are shown below.
 
-The current flow is the response of backend1 pod to the request of frontend pod' s request to the backendsvc service. However the current flow has a source IP of 10.222.1.47 (backend1 pod IP) and destination IP of 10.222.1.48 (frontend pod IP). Since the current flow is part of an already etablished flow (explained in Section 4) which was processed by iptables NAT rules (back in Section 4.8), this time the source IP of this current flow is SNATed from the backend1 pod IP to the backendsvc IP (10.104.65.133). 
+The current flow is the response of backend1 pod to the request of frontend pod' s to the backendsvc service. However the current flow has a source IP of 10.222.1.47 (backend1 pod IP) and destination IP of 10.222.1.48 (frontend pod IP). Since the current flow is part of an already etablished flow (explained in Section 4) which was processed by iptables NAT rules (back in Section 4.8), this time the source IP of this current flow is SNATed from the backend1 pod IP to the backendsvc IP (10.104.65.133). 
 
 Highlighted entries are related to the the backendsvc service.
 
