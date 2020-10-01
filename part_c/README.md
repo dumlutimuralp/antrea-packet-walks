@@ -13,6 +13,14 @@ The flow that will be explained in this section is shown below.
 
 ![](2020-09-16-17-49-42.png)
 
+As shown in [Part A Section 32](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_a/README.md#32-test-application), a simple "curl backendsvc" request on frontend pod would initiate this request. Below.
+
+<pre><code>
+vmware@master:~$ k exec -it frontend -- sh
+/ # curl backendsvc
+<b>OUTPUT OMITTED</b>
+</code></pre>
+
 This flow comes to OVS on the frontend pod port. Basically this flow is frontend pod accessing the backendsvc service on TCP port 80. Backendsvc service is backed by backend1 and backend2 pods, as shown in kubectl outputs in [Part A Section 3.2](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_a#32-test-application).
 
 At this stage, the current flow has the following values in the Ethernet and IP headers.
@@ -1080,13 +1088,30 @@ In this section the response from backen2 pod (on Worker 2 node) to the frontend
 
 The flow which made its way to the backend2 pod (in Section 9) had the source IP of frontend pod (10.222.1.48) and destination IP of backend2 pod (10.222.2.34). Hence backend2 pod will reply to frontend pod with its own IP (10.222.2.34) which is expected by any TCP/IP based communication. OVS could easily deliver the response to frontend pod directly.  **But this would break the communication.** The reason is when the frontend pod had initiated the connection (in Section 8) the source IP of the flow was frontend pod IP but the destination IP was backendsvc service IP (10.104.65.133). This destination service IP got DNATed by iptables to the destination IP of backend2 pod (10.222.2.34) in Section 9.  From frontend pod' s point of view it is communicating with backendsvc service IP. Because of this; return flow from backend2 pod to frontend pod should be **SNATed** now by iptables on Worker 1 node and be delivered to the frontend pod with the IP of the backendsvc service IP as the source IP. Hence OVS needs to steer the return flow from backend2 pod to frontend pod to the Worker 1 node' s Kernel IP Stack for iptables processing.
 
-To verify how backend1 pod responds to requests from the frontend pod, a quick tcpdump on the backend1 pod would reveal the source and destination IP/MAC of this flow. It is shown below.
+To verify how backend2 pod responds to requests from the frontend pod, a quick tcpdump on the backend2 pod would reveal the source and destination IP/MAC of this flow. It is shown below.
 
 <pre><code>
 vmware@master:~$ k exec -it frontend -- sh
 / # curl backendsvc
-Praqma Network MultiTool (with NGINX) - backend1 - 10.222.1.47/24
+Praqma Network MultiTool (with NGINX) - backend2 - 10.222.2.34/24
 </code></pre>
+
+while performing curl on frontend pod (as shown above), in another ssh session to the Kubernetes master node :
+
+<pre><code>
+vmware@master:~$ k exec -it backend2 -- sh
+/ #  tcpdump -en
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on eth0, link-type EN10MB (Ethernet), capture size 262144 bytes
+12:24:06.938242 <b>02:d8:4e:3f:92:1d > c6:f4:b5:76:10:38</b>, ethertype IPv4 (0x0800), length 74: <b>10.222.1.48.49140 > 10.222.2.34.80</b>: Flags [S], seq 4201074305, win 64860, options [mss 1410,sackOK,TS val 4044015621 ecr 0,nop,wscale 7], length 0
+12:24:06.938278 <b>c6:f4:b5:76:10:38 > 02:d8:4e:3f:92:1d</b>, ethertype IPv4 (0x0800), length 74: <b>10.222.2.34.80 > 10.222.1.48.49140</b>: Flags [S.], seq 4118006349, ack 4201074306, win 64308, options [mss 1410,sackOK,TS val 3333905778 ecr 4044015621,nop,wscale 7], length 0
+</code></pre>
+
+**Note 1:** For simplicity, the ARP requests/replies between antrea-gw0, frontend pod and backend1 pod are not shown in the above output.
+
+The source and destination MAC addresses of the first line in the tcpdump output are antrea-gw0 MAC(of Worker 2 node) and backend2 pod MAC (the flow explained in Section 9.11.6)
+The source and destination MAC addresses of the second line in the tcpdump output are backend2 pod MAC and antrea-gw0  MAC (of Worker 2 node) the flow that will be explained in this section)
+The source or destination IP addresses are always frontend pod IP and backend pod IP
 
 ![](2020-09-30_23-54-39.png)
 
