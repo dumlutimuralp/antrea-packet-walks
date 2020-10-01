@@ -24,7 +24,7 @@ Above diagram is copied from [here](https://github.com/vmware-tanzu/antrea/blob/
 
 # 3. Test Environment
 
-In the test environment there is a single master (control plane) and two worker nodes in the Kubernetes cluster. Ubuntu, Docker, Kubernetes versions used can be seen below.
+In the test environment there is a single master (control plane) and two worker (compute) nodes in the Kubernetes cluster. Ubuntu, Docker, Kubernetes versions used can be seen below.
 
 Container image used in this tool, which is dumlutimuralp/networktest is a copy of the original image [Praqma/Network-Multitool](https://github.com/Praqma/Network-MultiTool) on Dockerhub. All usage is subject to the original image' s licensing scheme. 
 
