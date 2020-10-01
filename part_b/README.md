@@ -1082,7 +1082,7 @@ The current flow' s source and destination MAC and IP address values are still a
 - Source MAC = f2:32:d8:07:e2:a6 (backend1 Pod MAC)
 - Destination MAC =  4e:99:08:c1:53:be (antrea-gw0 MAC on Worker 1) (destination MAC was be:2c:bf:e4:ec:c5 at the beginning of this section but it got rewritten to the antrea-gw0 MAC on Worker 1 node, back in Section 6.4)
 
-Based on the current flow' s source and destination MAC/IP values, the current flow matches the last flow entry in Table 70 (since the prior flow entries match against a different destination MAC). The destination IP and MAC is local to Worker 1 node and clearly there is no routing or L3 forwarding needed. The action in the last flow entry is "resubmit(,80)" which basically hands over the flow to Table 80. Hence next stop is Table 80.
+Based on the current flow' s source and destination IP/MAC values, the current flow matches the last flow entry in Table 70 (since the prior flow entries match against a different destination MAC). The destination IP and MAC is local to Worker 1 node and clearly there is no routing or L3 forwarding needed. The action in the last flow entry is "resubmit(,80)" which basically hands over the flow to Table 80. Hence next stop is Table 80.
 
 **Note :** The first five flow entries in this table are related to ARP processing "aa:bb:cc:dd:ee:ff" and will be explained in [Part D Section 12](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_d). The sixth and seventh flow entries in this table are for inter node flow patterns and it will be will be explained in Section 9.
 
