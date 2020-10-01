@@ -369,7 +369,8 @@ vmware@worker1:~$
 
 Next phase is the flow being sent from backendsvc service to one of the backend pods backing that service and the processing of that flow is explained in the next section. 
 
-# 5. Phase 2 - Service to Backend Pod 
+# 5. Phase 2 - Service to Backend Pod
+[Back to table of contents](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_b/README.md#part-b)
 
 The **assumption at this stage is, in the previous, kube-proxy managed NAT rules in iptables translated the backendsvc service IP to the backend1 pod' s IP (which is local to Worker 1 node)** to service the request that came from the frontend pod in the previous section. The other scenario, in which iptables translates the flow to backend2 pod IP, will be explained in [Part C](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_c).
 
@@ -879,7 +880,8 @@ The logic of "reg0=-0x10000/0x10000" in the flow entry is that the first 0x10000
 
 So bit 16 must be "1", and that is being verified in "reg0". The first four bits on the left hand side is not worth to mention hence the desired value and actual value are both shown as "0x10000". 
 
-# 6. Phase 3 - Backend Pod to Service 
+# 6. Phase 3 - Backend Pod to Service
+[Back to table of contents](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_b/README.md#part-b)
 
 In this section the response from backend1 pod to the frontend pod will be explained. However the title above says "Backend Pod to Service" ? Why ? 
 
@@ -1364,6 +1366,7 @@ vmware@worker1:~$
 Next phase is the flow being sent from backendsvc service to the frontend pod and the processing of that flow is explained in the next section. 
 
 # 7. Phase 4 - Service to Frontend
+[Back to table of contents](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_b/README.md#part-b)
 
 In this section the response from backendsvc service to the frontend pod will be explained. 
 
@@ -1654,4 +1657,6 @@ The logic of "reg0=-0x10000/0x10000" in the flow entry is that the first 0x10000
 0 0 0 0 | 0 0 0 1   0 0 0 0 |  0 0 0 0   0 0 0 0 | 0 0 0 0
 </code></pre>
 
-So bit 16 must be "1", and that is being verified in "reg0". The first four bits on the left hand side is not worth to mention hence the desired value and actual value are both shown as "0x10000". 
+So bit 16 must be "1", and that is being verified in "reg0". The first four bits on the left hand side is not worth to mention hence the desired value and actual value are both shown as "0x10000".
+
+[Back to table of contents](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_b/README.md#part-b)
