@@ -7,7 +7,7 @@ This section explains the packet flow between frontend and backend pods, which a
 - [10. Backend Pod to Service](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_c/README.md#10-Backend-pod-to-service)
 - [11. Service to Frontend](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_c/README.md#11-Service-to-frontend-pod)
 
-# 8. Phase 1 - Frontend Pod to Service
+# 8. Frontend Pod to Service
 [Back to table of contents](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_c/README.md#part-c)
 
 The flow that will be explained in this section is shown below.
@@ -366,7 +366,7 @@ vmware@worker1:~$
 
 Next phase is the flow being sent from backendsvc service to one of the backend pods backing that service and the processing of that flow is explained in the next section. 
 
-# 9. Phase 2 - Service to Backend Pod
+# 9. Service to Backend Pod
 [Back to table of contents](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_c/README.md#part-c)
 
 The **assumption is that, in the previous phase, kube-proxy driven NAT rules in iptables translated the backendsvc service IP to the backend2 pod' s IP (which is on Worker 2 node)** to service the request that came from the frontend pod in the previous section. 
@@ -1095,7 +1095,7 @@ The logic of "reg0=-0x10000/0x10000" in the flow entry is that the first 0x10000
 
 So bit 16 must be "1", and that is being verified in "reg0". The first four bits on the left hand side is not worth to mention hence the desired value and actual value are both shown as "0x10000". 
 
-# 10. Phase 3 - Backend Pod to Service
+# 10. Backend Pod to Service
 [Back to table of contents](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_c/README.md#part-c)
 
 In this section the response from backen2 pod (on Worker 2 node) to the frontend pod (on Worker 1 node) will be explained. However the title above says "Backend Pod to Service" ? Why ? 
@@ -1809,7 +1809,7 @@ vmware@worker1:~$
 
 Next phase is the flow being sent from backendsvc service to the frontend pod and the processing of that flow is explained in the next section. 
 
-# 11. Phase 4 - Service to Frontend Pod
+# 11. Service to Frontend Pod
 [Back to table of contents](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_c/README.md#part-c)
 
 In this section the response from backendsvc service to the frontend pod will be explained. 
