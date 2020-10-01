@@ -2,7 +2,7 @@
 
 This section explains the packet flow between frontend and backend pods, which are on different Kubernetes nodes, in four phases.
 
-- [Phase 1 Frontend to Service]()
+- [Phase 1 Frontend to Service](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_c#8-phase-1---frontend-pod-to-service)
 - [Phase 2 Service to Backend Pod]()
 - [Phase 3 Backend Pod to Service]()
 - [Phase 4 Service to Frontend]()
