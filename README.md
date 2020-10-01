@@ -6,7 +6,7 @@ This article explains the step by step packet walks for a given application flow
 
 The purpose of this article is to walk the reader through an actual flow pattern between a frontend pod to a Kubernetes service and explain the forwarding decisions made from that specific flow' s point of view with some other details and more wording.
 
-Special thanks to [Quan Tian](https://github.com/tnqn), [Wenying Dong](https://github.com/wenyingd), [Ran Gu](https://github.com/gran-vmv) for responding to my queries about OVS registers and forwarding logic. 
+_**Special thanks to [Quan Tian](https://github.com/tnqn), [Wenying Dong](https://github.com/wenyingd), [Ran Gu](https://github.com/gran-vmv) for responding to my queries about OVS registers and forwarding logic.**_
 
 ## [PART A - Architecture and Test Environment](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_a/README.md)
 
