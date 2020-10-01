@@ -1376,10 +1376,10 @@ vmware@master:~$ kubectl exec -it frontend -- sh
 / # tcpdump -en
 tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
 listening on eth0, link-type EN10MB (Ethernet), capture size 262144 bytes
+<b>OUTPUT OMITTED</b>
 13:34:36.631128 be:2c:bf:e4:ec:c5 > 4e:99:08:c1:53:be, ethertype IPv4 (0x0800), length 74: 10.222.1.48.41132 > 10.104.65.133.80: Flags [S], seq 3708988602, win 64860, options [mss 1410,sackOK,TS val 3357033759 ecr 0,nop,wscale 7], length 0
 13:34:36.632662 <b>4e:99:08:c1:53:be > be:2c:bf:e4:ec:c5</b>, ethertype IPv4 (0x0800), length 74: <b>10.104.65.133.80 > 10.222.1.48.41132</b>: Flags [S.], seq 4193653914, ack 3708988603, win 64308, options [mss 1410,sackOK,TS val 2646923917 ecr 3357033759,nop,wscale 7], length 0
 <b>OUTPUT OMITTED</b>
-
 </code></pre>
 
 **The highlighted line in the above output is the backendsvc service response to frontend pod. This section will investigate how this flow is delivered from the Kernel IP stack of Worker 1 Node to the frontend pod.**
@@ -1439,7 +1439,7 @@ vmware@master:~$
 
 What this table does is verifying if the source IP and MAC of the the traffic matches the IP and MAC assigned to the Pod by Antrea CNI plugin during initial Pod connectivity. It implements this check both for IP and ARP traffic.
 
-Since the flow came from the antrea-gw0 interface, the flow matches the <b>first</b> flow entry in this table. The source IP of the current flow, which is coming from antrea-gw0 interface, is the backend1 pod IP, hence spoofguard does not do any checks in this instance. The only action specified in the first flow entry is handing the flow over to Table 30 (actions=goto_table:30). So next stop is Table 30.
+Since the flow came from the antrea-gw0 interface, the flow matches the <b>first</b> flow entry in this table. The source IP of the current flow, which is coming from antrea-gw0 interface, is the backendsvc service IP, hence spoofguard does not do any checks in this instance. The only action specified in the first flow entry is handing the flow over to Table 30 (actions=goto_table:30). So next stop is Table 30.
 
 **Note :** Spoofguard does not do any checks for IP packets on the antrea-gw0 port. However it still checks the ARP flows on that port. The second flow entry in the table is used for that purpose. It basically checks the ARP flows sent by the antrea-gw0 interface to the local pods running on Worker1 node.
 
