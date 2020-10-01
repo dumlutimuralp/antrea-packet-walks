@@ -736,7 +736,15 @@ So bit 16 must be "1", and that is being verified in "reg0". The first four bits
 
 When the flow gets to tunnel0 (genev_sys_6081) interface on Worker 1 node, Linux IP Stack adds the GENEVE headers to the flow with the destination IP address of 10.79.1.202 (which was determined in Table 70 back in Section 9.7 earlier) and source IP of 10.79.1.201 which is Worker 1 node IP. Next the flow is sent through the ens160 interface of the Worker 1 node onwards to the physical network, destined to the Worker 2 node.
 
-A quick tcpdump on the ens160 interface of the Worker 1 node would reveal this, shown below. UDP 6081 is the GENEVE port.
+To verify how Worker 2 node encapsulates the flows, a quick tcpdump on theW Worker 1 node ens160 interface on UDP 6081, which is GENEVE port, would reveal the source and destination IP/MAC of this flow. 
+
+<pre><code>
+vmware@master:~$ k exec -it frontend -- sh
+/ # curl backendsvc
+Praqma Network MultiTool (with NGINX) - backend2 - 10.222.2.34/24
+</code></pre>
+
+while performing curl on frontend pod (as shown above), in another ssh session to the Kubernetes master node :
 
 <pre><code>
 vmware@worker1:~$ sudo tcpdump -i ens160 -en udp port 6081
@@ -1319,7 +1327,7 @@ vmware@master:~$
 
 This table' s job is simple. First flow entry in this table first reads the value in register reg0[16]. If the value of this register is "1" in decimal, that means the destination MAC address is known to OVS and the flow should be able to get forwarded (otherwise it would get dropped). The same flow entry has an action defined as "actions=output:NXM_NX_REG1[]". What this action does is it reads the value in "NXM_NX_REG1" to determine the OF port this flow will be sent through and then sends the flow onwards to that port.
 
-The current flow' s reg0[16] bit was set to "0x1" (1 in decimal)  back in Table 70 and the value of REG1 was set to "0x1" (1 in decimal) also back in Table 70 in Section 10.7.  "1" is the OF Port ID of tunnel interface (genev_sys_6081 on Linux) on Worker 2 node. **Hence the current flow is sent onwards to the tunnel0 interface.**
+The current flow' s reg0[16] bit was set to "0x1" (1 in decimal)  back in Table 70 and the value of REG1 was set to "0x1" (1 in decimal) also back in Table 70 in Section 10.7.  "1" is the OF Port ID of tunnel interface (genev_sys_6081 on Linux) on Worker 2 node. **Hence the current flow is sent onwards to the tunnel0 interface on Worker 2 node.**
 
 **Note :** The second flow entry in this table obviously drops the flows which do not have their "reg0[16]" register set.
 
@@ -1332,5 +1340,22 @@ The logic of "reg0=-0x10000/0x10000" in the flow entry is that the first 0x10000
 
 So bit 16 must be "1", and that is being verified in "reg0". The first four bits on the left hand side is not worth to mention hence the desired value and actual value are both shown as "0x10000". 
 
+## 10.10 Encapsulation from Worker 2 to Worker 1
+
+When the flow gets to tunnel0 (genev_sys_6081) interface on Worker 2 node, Linux IP Stack adds the GENEVE headers to the flow with the destination IP address of 10.79.1.201 (which was determined in Table 70 back in Section 10.7 earlier) and source IP of 10.79.1.202 which is Worker 2 node IP. Next the flow is sent through the ens160 interface of the Worker 2 node onwards to the physical network, destined to the Worker 1 node.
+
+A quick tcpdump on the ens160 interface of the Worker 1 node would reveal this, shown below. UDP 6081 is the GENEVE port.
+
+<pre><code>
+vmware@worker1:~$ sudo tcpdump -i ens160 -en udp port 6081
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on ens160, link-type EN10MB (Ethernet), capture size 262144 bytes
+21:02:21.273147 <b>00:50:56:8f:4e:82 > 00:50:56:8f:1c:f6</b>, ethertype IPv4 (0x0800), length 124: <b>10.79.1.201.12445 > 10.79.1.202.6081</b>: Geneve, Flags [none], vni 0x0, proto TEB (0x6558): <b>4e:99:08:c1:53:be > aa:bb:cc:dd:ee:ff</b>, ethertype IPv4 (0x0800), length 74: <b>10.222.1.48.46490 > 10.222.2.34.80</b>: Flags [S], seq 2799349838, win 64860, options [mss 1410,sackOK,TS val 3988709021 ecr 0,nop,wscale 7], length 0
+<b>OUTPUT OMITTED</b>
+</code></pre>
+
+The source and destination IP/MAC are the ens160 interfaces of the Worker 1 and Worker 2 nodes. Highlighted above. The inner IP/MAC can also be seen in the same output.
+
+**Note:** Notice "vni 0x0" that is the actual network ID used in the GENEVE header for this traffic. Apparently no specific ID needs to be used cause OVS keeps track of each flow individually.
 
 # 11. Phase 4 - Service to Frontend Pod
