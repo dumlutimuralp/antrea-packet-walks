@@ -12,15 +12,15 @@ Antrea OVS container within Antrea Agent Pod runs the OVS daemons ovsdb-server a
 
 "br-int" is the default name of OVS virtual bridge/switch that Antrea provisions on the Kubernetes nodes.
 
-**Note :** More detailed diagram is [here](https://github.com/vmware-tanzu/antrea/blob/master/docs/architecture.md), at Antrea' s project repo on Github.
+**Note :** More detailed diagram is [here](https://github.com/vmware-tanzu/antrea/blob/master/docs/architecture.md), at Project Antrea page on Github.
 
 # 2. OVS Pipeline
 
 ![](2020-09-15-20-19-07.png)
 
-Above diagram is copied from [here](https://github.com/vmware-tanzu/antrea/blob/master/docs/ovs-pipeline.md)(OVS Pipeline at Antrea project repo on Github) showing the actual steps in the pipeline. Antrea team has already done an awesome job in explaining each table in this diagram with extreme details. OVS terminology is explained on the same repo. 
+Above diagram is copied from [here](https://github.com/vmware-tanzu/antrea/blob/master/docs/ovs-pipeline.md)(OVS Pipeline at Project Antrea page on Github) showing the actual steps in the pipeline. Antrea team has already done an awesome job in explaining each table in this diagram with extreme details. OVS terminology is explained on the same repo. 
 
-As mentioned in the beginning, the aim of this article is explaining each OVS table from the flow' s point of view with some other details and more explanations.  please refer to the Antrea project repo on Github.
+As mentioned in the beginning, the aim of this article is explaining each OVS table from the flow' s point of view with some other details and more explanations.  please refer to the Project Antrea page on Github.
 
 # 3. Test Environment
 
