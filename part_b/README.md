@@ -809,9 +809,9 @@ The eighth flow entry defines two actions for conjunction 3 as soon as all field
 
 For reference, remaining flow entries are explained below : 
 
-Last flow entry in Table 90 defines that if the flow does not match any of the above entries then the flow will be handed over to Table 100 which is IngressDefaultTable (resubmit(,100)). Table 100 is for isolation rules. Basically when a network policy is applied to a pod, the flows which do not match any of the allowed ingress flows in Table 90 will be dropped by Table 100.
+Last flow entry in Table 90 defines that if the flow does not match any of the above entries then the flow will be handed over to Table 100 which is IngressDefaultTable (resubmit(,100)). Table 100 is for isolation rules. Basically when a network policy is applied to a pod, the flows which do not match any of the flows in Table 90 will be dropped by Table 100.
 
-For reference, IngressDefault table on Worker 1 can be seen below. As the current flow has matched conjunction 3, Table 100 will be bypassed as the current flow is allowed in Table 90 by Kubernetes Network Policy applied to backend pod. 
+For reference, IngressDefault table on Worker 1 node is shown below. As the current flow has matched conjunction 3, Table 100 will be bypassed as the current flow is allowed in Table 90 by Kubernetes Network Policy applied to backend pod. 
 
 The Table 100 on Worker 1 is shown below. 
 
