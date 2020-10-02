@@ -709,8 +709,8 @@ What this table does is not that different than a typical IEEE 802.1d transparen
 
 Each flow entry in this table sets two registers, both of which mentioned in earlier sections, will be explained here once again. 
 
-- Reg1 is used to store OF port ID of the flow (the OVS port which the flow should be sent to). This register is set with the respective OF port ID based on the destination MAC address of the flow. This register which stores the OF port ID will be used later on in Table 110 (L2ForwardingOut Table).
-- Reg0[16] is used and it is set to "1" to indicate that the given flow has a matching destination address in this table, which is known to OVS, and it should be forwarded. 
+- Reg1 is used to store OF port ID of the the OVS port which the flow should be sent to. Based on the destination MAC address of the flow this register is set with the respective OF port ID.  This register will be used later on in Table 110 (L2ForwardingOut Table).
+- The way Reg0[16] is used is that if it is set to "1" then that indicates that the given flow has a matching destination address in this table, which is known to OVS, and it should be forwarded. 
 
 As seen in the highlighted flow entry above in the table, the current flow, which has a destination MAC address of f2:32:d8:07:e2:a6 (the MAC of backend1 pod), matches the fourth flow entry. The actions in the fourth flow entry are as following : 
 
@@ -720,7 +720,7 @@ As seen in the highlighted flow entry above in the table, the current flow, whic
 
 Hence next stop is Table 90.
 
-Just to emphasize once more, as a result of the actions mentioned in above bullets, OVS now knows that the destination of this flow is egress OF port 48 and the destination MAC address is known. However there is still more processing that needs to be done, as Table 90 and onwards.
+Just to emphasize once more, as a result of the actions mentioned in above bullets, OVS now knows that the destination of this flow is OF port 48 and the destination MAC address is known. However there is still more processing that needs to be done, as Table 90 and onwards.
 
 **Note :** In the OVS Pipeline diagram [here](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_a/README.md#2-ovs-pipeline), there are tables 85-89 before Table 90. However those tables are in use only when ClusterNetworkPolicy (CNP) feature of Antrea is used. In this Antrea environment, CNP is not used. 
 
