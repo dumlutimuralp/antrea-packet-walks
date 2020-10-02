@@ -508,7 +508,7 @@ This table in essence checks whether if the flow is destined to a Kubernetes ser
 
 The table has only two flow entries. The first flow entry checks whether if the destination IP of the flow is part of the service CIDR range configured in the cluster (which is 10.96.0.0/12); if it does, then certain actions are taken on the flow to steer the flow to the antrea-gw0 interface on the Worker 1 node.  
 
-The destination IP of the current flow is backend2 pod IP (10.222.2.34) and it does not fall into the service CIDR range in the first flow entry in Table 40. Hence the current flow will match the second/last entry. The action specified in the last flow entry is to basically hand over the flow to Table 50 (actions=resubmit(,50)). So next stop is Table 50.
+The destination IP of the current flow is backend2 pod IP (10.222.2.34) and it does not fall into the service CIDR range in the first flow entry in Table 40. Hence the current flow will match the second/last entry. The action specified in the last flow entry is to basically hand the flow over to Table 50 (actions=resubmit(,50)). So next stop is Table 50.
 
 **Note :** In the OVS Pipeline diagram at Antrea Project' s Github repo, there are tables 45-49 before Table50. However those tables are in use only when ClusterNetworkPolicy (CNP) feature of Antrea is used. In this Antrea environment, CNP is not used. 
 
