@@ -606,8 +606,6 @@ vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ov
 vmware@master:~$ 
 </code></pre>
 
-One thing to emphasize here again is that this table includes the egress rules of all the Kubernetes Network Policies applied to all of the pods on Worker 1 node (not only the egress rules configured on "frontendpolicy" and applied to frontend pod). Cause there is a frontend pod and a backend1 pod running on Worker 1 node. 
-
 First thing to understand from above table is OVS uses "conjunctive" match across multiple fields alongside "conjunction" action. This enables OVS to optimize policy implementation without consuming too many flow entries.
 
 The first flow entry in Table 50 above checks whether if the flow is an already established flow (-new,+est); if it is then there is no need to process the flow against the remaining flow entries in this table since Kubernetes Network Policy is STATEFUL by nature. However the current flow is a NEW flow hence it does NOT match this first flow entry.
@@ -728,9 +726,7 @@ Just to emphasize once more, as a result of the actions mentioned in above bulle
 
 At this stage, the flow is in Table 90. 
 
-Table 90 has flow entries which correspond to the ingress rules configured in Kubernetes Network Policies applied to the pods on Worker 1 node. There is a frontend pod and a backend1 pod on the Worker 1 node. "frontendpolicy" is applied to frontend pod and "backendpolicy" is applied to backend1 pod and backend2 pod (on Worker2) . 
-
-In this section the current flow will be matched against the ingress rules of the Kubernetes Network Policy "backendpolicy"; since it is the policy which is applied to the backend1 pod and backend1 pod is the receiver of the flow. 
+Table 90 has flow entries which correspond to the ingress rules configured in all the Kubernetes Network Policies applied to all the pods on Worker 1 node. There is a frontend pod and a backend1 pod on the Worker 1 node. "frontendpolicy" is applied to frontend pod and "backendpolicy" is applied to backend1 pod and backend2 pod (on Worker2) . 
 
 Kubernetes Network Policy named as "backendpolicy" is shown below.
 
@@ -792,8 +788,6 @@ vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ov
  cookie=0x1000000000000, table=90, priority=0 actions=resubmit(,100)
 vmware@master:~$ 
 </code></pre>
-
-One thing to emphasize here again is this table includes the ingress rules of all the Kubernetes Network Policies applied to all of the pods on Worker 1 node (not only the ingress rules configured on "backendpolicy" and applied to backend1 pod) However the focus in this section is on the flow entries which correspond to the ingress rules of the Kubernetes Network Policy "backendpolicy".
 
 The first flow entry checks whether if the flow is an already established flow (-new,+est); if it is then there is no need to process the flow against the remaining flow entries, since Kubernetes Network Policy is STATEFUL by nature. However the current flow is a NEW flow hence it does NOT match this first flow entry. 
 
