@@ -698,7 +698,7 @@ Based on the current flow' s source and destination MAC/IP values the flow match
 
 **Note 1:** Notice that the original source and destination MAC address in the flow are already the values which are written by the second and third actions in seventh flow entry. Why are those still rewritten ? The reason is this same flow entry (seventh flow entry) is used also for the flows between Pods on different nodes, in which the source MAC ofthe flow would be source Pod' s MAC and destination MAC would be the antrea-gw0 interface of the node where source Pod is running. So with one flow entry two different types of flows are addressed. One is service to pod (on another node) flows, the other is pod to pod (on another node) flows.
 
-**Note 2:** The flow here skips Table 80 (L2 Forwarding) and 90 (Ingress Rules). The OF Port ID of the port which this flow will be be sent through is already written to register Reg1 and the ingress rules will be processed at the other end (Worker 2 node) cause the receiving pod is on a different node. 
+**Note 2:** The flow here skips Table 80 (L2 Forwarding) and 90 (Ingress Rules). The OF Port ID of the port which this flow will be sent through is already written to register Reg1 and the ingress rules will be processed at the other end (Worker 2 node) cause the receiving pod is on a different node. 
 
 ## 9.8 ConntrackCommit Table #105
 
