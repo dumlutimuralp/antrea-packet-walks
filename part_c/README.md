@@ -684,7 +684,7 @@ The current flow' s source and destination MAC and IP address values are still a
 
 Based on the current flow' s source and destination MAC/IP values the flow matches the seventh flow entry in Table 70, since the destination IP matches the "nw_dst" field. There are several actions in this seventh flow entry which are explained below : 
 
-- First action is to decrement the TTL ("dec_ttl") since the destination IP of the flow is on another subnet than the one frontend pod is, so this flow is actually a routed flo.  
+- First action is to decrement the TTL ("dec_ttl") since the destination IP of the flow is on another subnet than the one frontend pod is, so this flow is actually a routed flow.  
 
 - Second action is to modify the source MAC address of the flow "mod_dl_src: 4e:99:08:c1:53:be" to the antrea-gw0 interface of Worker 1 node
 
