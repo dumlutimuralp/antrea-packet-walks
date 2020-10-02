@@ -795,7 +795,7 @@ The third flow entry matches on source IP of 10.222.1.48 (frontend pod IP). The 
 
 The fourth flow entry matches on destination protocol and port which is TCP 80. The same flow entry has a conjunction action with a conjunction id of "3" and "4". 
 
-**NOTE:** Conjunction 4 is not the focus of this section since it addresses the ingress traffic to the "frontend pod" which is not relevant here. 
+**NOTE:** Conjunction 4 is not the focus of this section since it addresses the ingress traffic to the "frontend pod" which is configured in the ingress section of the "frontendpolicy" but it is not relevant here since the current flow is ingress to backend1 pod. 
 
 The fifth flow entry matches on the OF port id where the flow will be delivered to (reg1=0x30). 0x30 corresponds to 48 in decimal, which is the OF port that the backend pod is connected to. This is an additional check (verifying the OF port ID of the receiver) that the ingress table implements in addition to source IP check. The same flow entry has a conjunction action with a conjunction id of "3".
 
@@ -811,7 +811,7 @@ For reference, remaining flow entries are explained below :
 
 Last flow entry in Table 90 defines that if the flow does not match any of the above entries then the flow will be handed over to Table 100 which is IngressDefaultTable (resubmit(,100)). Table 100 is for isolation rules. Basically when a network policy is applied to a pod, the flows which do not match any of the flows in Table 90 will be dropped by Table 100.
 
-For reference, IngressDefault table on Worker 1 node is shown below. As the current flow has matched conjunction 3, Table 100 will be bypassed as the current flow is allowed in Table 90 by Kubernetes Network Policy applied to backend pod. 
+For reference, IngressDefault table on Worker 1 node is shown below. As the current flow has matched conjunction 3, Table 100 will be bypassed as the current flow is allowed in Table 90.
 
 The Table 100 on Worker 1 is shown below. 
 
@@ -825,7 +825,7 @@ vmware@master:~$
 
 Reason there are two different OF port IDs in the first two flow entries here is, there is an ingress rule used in two different Kubernetes Network Policies; one is "frontendpolicy" applied to frontend pod, the other is "backendpolicy" applied to backend pods. Each of the first two flow entries in this table applies to the respective pod' s OVS interface, running on Worker 1 node. 
 
-The last flow entry in Table 100 basically hands over all the flows, which did not match any of the conjunctions in Table 90 or the drop flow entries in Table 100, to the next table - Table 105. 
+The last flow entry in Table 100 basically hands all the flows, which did not match any of the conjunctions in Table 90 or the drop flow entries in Table 100, over to the next table - Table 105. 
 
 ## 5.10 ConntrackCommit Table #105
 
