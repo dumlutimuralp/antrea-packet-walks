@@ -640,7 +640,7 @@ The eleventh flow entry also defines two actions for conjunction 5 as soon as al
 
 Last flow entry in this table defines that if the flow does not match any of the above entries then the flow is handed over to Table 60 which is EgressDefaultTable (resubmit(,60)). Table 60 is for isolation rules. Basically when a Kubernetes Network Policy is applied to a pod, the flows which do not match any of the in Table 50 will be dropped by Table 60.
 
-For reference, EgressDefault Table #60 on Worker 1 node is shown  below. As the current flow matches conjunction 1 in Table 50, Table 60 will be bypassed and the flow is allowed by Kubernetes Network Policy "frontendpolicy" applied to frontend pod. 
+For reference, EgressDefault Table #60 on Worker 1 node is shown  below. As the current flow matches conjunction 1 in Table 50, Table 60 will be bypassed.
 
 <pre><code>
 vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ovs -- ovs-ofctl dump-flows br-int table=60 --no-stats
@@ -652,7 +652,7 @@ vmware@master:~$
 
 Reason there are two source IPs in two different flow entries here is, there is an egress rule used in two different Kubernetes Network Policies; one is "frontendpolicy" applied to frontend pod, the other is "backendpolicy" applied to backend pods. Each of the first two flow entries in this table used to deny the traffic from the respective pod running on Worker 1 node. 
 
-The last flow entry in Table 60 basically hands over all the flows (which did not match any of the conjunctions in Table 50 nor the drop flow entries in Table 60) to the next table , Table 70.
+The last flow entry in Table 60 basically hands all the flows (which did not match any of the conjunctions in Table 50 nor the drop flow entries in Table 60) over to the next table , Table 70.
 
 ## 9.7 L3Forwarding Table #70
 
