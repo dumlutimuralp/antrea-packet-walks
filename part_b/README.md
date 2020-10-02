@@ -522,8 +522,6 @@ At this stage, the flow is in Table 50.
 
 Table 50 has flow entries which correspond to the egress rules configured in all the Kubernetes Network Policies applied to all the pods on Worker 1 node. There is a frontend pod and a backend1 pod on the Worker 1 node. "frontendpolicy" is applied to frontend pod and "backendpolicy" is applied to backend1 pod and backend2 pod (on Worker2) . 
 
-In this section the current flow will be matched against the egress rules of the Kubernetes Network Policy "frontendpolicy"; since it is the policy which is applied to the frontend pod and frontend pod is the initiator of the flow. 
-
 In the previous section (Section 4) the flow could not be matched against this table, instead it bypassed all the EgressRule tables. Because that flow' s destination IP was still the backendsvc service IP and Kubernetes Network Policy would not make an accurate check in that case and legitimate flows would have been blocked. This is the reason as to why the flow in Section 4 bypassed all the Egress Rule tables and got redirected to antrea-gw0 interface onwards to Kernel IP stack for iptables rule processing. Only after kube-proxy managed iptables rules applied DNAT on that flow (in Section 4.8), which essentially translated the destination backendsvc service IP to one of the backend pods IP, then the flow now can be processed by this Table 50 as will be explained in this step. 
 
 The content of the "frontendpolicy" is shown below.
@@ -642,9 +640,9 @@ For reference, remaining flow entries are explained below :
 
 The eleventh flow entry also defines two actions for conjunction 5 as soon as all fields of conjunction 5 is matched. As mentioned before, this conjunction id has got nothing to do with "frontendpolicy" and it is not relevant here. It actually coresponds to the egress rules configured in "backendpolicy".
 
-Last flow entry in this table defines that if the flow does not match any of the above entries then the flow is handed over to Table 60 which is EgressDefaultTable (resubmit(,60)). Table 60 is for isolation rules. Basically when a Kubernetes Network Policy is applied to a pod, the flows which do not match any of the allowed egress flows in Table 50 will be dropped by Table 60.
+Last flow entry in this table defines that if the flow does not match any of the above entries then the flow is handed over to Table 60 which is EgressDefaultTable (resubmit(,60)). Table 60 is for isolation rules. Basically when a Kubernetes Network Policy is applied to a pod, the flows which do not match any of the in Table 50 will be dropped by Table 60.
 
-For reference, EgressDefault Table #60 on Worker 1 node is shown  below. As the current flow matches conjunction 1 in Table 50, Table 60 will be bypassed and the flow is allowed by Kubernetes Network Policy "frontendpolicy" applied to frontend pod. 
+For reference, EgressDefault Table #60 on Worker 1 node is shown  below. As the current flow matches conjunction 1 in Table 50, Table 60 will be bypassed.
 
 <pre><code>
 vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ovs -- ovs-ofctl dump-flows br-int table=60 --no-stats
@@ -654,7 +652,7 @@ vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ov
 vmware@master:~$
 </code></pre>
 
-Reason there are two source IPs in two different flow entries here is, there is an egress rule used in two different Kubernetes Network Policies; one is "frontendpolicy" applied to frontend pod, the other is "backendpolicy" applied to backend pods. Each of the first two flow entries in this table applies to the respective pod running on Worker 1 node. 
+Reason there are two source IPs in two different flow entries here is, there is an egress rule used in two different Kubernetes Network Policies; one is "frontendpolicy" applied to frontend pod, the other is "backendpolicy" applied to backend pods. Each of the first two flow entries in this table used to deny the traffic from the respective pod running on Worker 1 node. 
 
 The last flow entry in Table 60 basically hands all the flows (which did not match any of the conjunctions in Table 50 nor the drop flow entries in Table 60) over to the next table , Table 70.
 
