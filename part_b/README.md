@@ -380,15 +380,15 @@ Next step is the flow to be sent from backendsvc service to one of the backend p
 # 5. Service to Backend Pod
 [Back to table of contents](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_b/README.md#part-b)
 
-**The assumption at this stage is, in the previous step, kube-proxy managed NAT rules in iptables translated the backendsvc service IP to the backend1 pod' s IP (which is on the same node)** to service the request that came from the frontend pod in the previous section. The other scenario, in which iptables translates the flow to backend2 pod IP, will be explained in [Part C](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_c).
+**The assumption at this stage is, in the previous step, kube-proxy managed NAT rules in iptables translated the backendsvc service IP (10.104.65.133) to the backend1 pod' s IP (10.222.1.47, which is on the same node)** to service the request that came from the frontend pod in the previous section. The flow that will be explained in this section is shown below.
 
-As mentioned in the assumption above, the kube-proxy managed iptables NAT rule DNATed backendsvc IP (10.104.65.133) to backend1 pod IP (10.222.1.47). Hence, the flow that will be explained in this section is shown below.
+**Note 1:** The other scenario, in which iptables translates the flow to backend2 pod IP, is explained in [Part C](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_c).
 
 ![](2020-09-21-18-05-57.png)
 
 To verify the Ethernet and IP headers of this flow, a quick tcpdump on the antrea-gw0 interface of the Worker 1 node would reveal the source and destination IP/MAC of this flow. 
 
-While performing "curl" on frontend pod, connect to the Kubernetes Worker 1 node and get tcpdump. As shown below.
+While performing "curl backendsvc" on frontend pod, connect to the Kubernetes Worker 1 node and get tcpdump. As shown below.
 
 <pre><code>
 vmware@master:~$ kubectl exec -it frontend -- sh
@@ -405,9 +405,9 @@ listening on antrea-gw0, link-type EN10MB (Ethernet), capture size 262144 bytes
 <b>OUTPUT OMITTED</b>
 </code></pre>
 
-**Note 1:** For simplicity, the ARP requests/replies between antrea-gw0, frontend pod and backend1 pod are not shown in the above output. ARP process will be explained in [Part D Section 12](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_d).
+**Note 2:** For simplicity, the ARP requests/replies between antrea-gw0, frontend pod and backend1 pod are not shown in the above output. ARP process will be explained in [Part D Section 12](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_d).
 
-**Note 2 :** Notice that not only the destination IP but also the source and destination MAC addresses also have changed (from the previous step, Section 8).
+**Note 3 :** Notice that not only the destination IP but also the source and destination MAC addresses also have changed (from the previous step, Section 8).
 
 Basically the current flow has the following values in the Ethernet and IP headers.
 
