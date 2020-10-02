@@ -520,11 +520,11 @@ The destination IP of the current flow is backend1 pod IP (10.222.1.47) and it d
 
 At this stage, the flow is in Table 50. 
 
-Table 50 has flow entries which correspond to the egress rules configured in Kubernetes Network Policies applied to the pods on Worker 1 node. There is a frontend pod and a backend1 pod on the Worker 1 node. "frontendpolicy" is applied to frontend pod and "backendpolicy" is applied to backend1 pod and backend2 pod (on Worker2) . 
+Table 50 has flow entries which correspond to the egress rules configured in all the Kubernetes Network Policies applied to all the pods on Worker 1 node. There is a frontend pod and a backend1 pod on the Worker 1 node. "frontendpolicy" is applied to frontend pod and "backendpolicy" is applied to backend1 pod and backend2 pod (on Worker2) . 
 
 In this section the current flow will be matched against the egress rules of the Kubernetes Network Policy "frontendpolicy"; since it is the policy which is applied to the frontend pod and frontend pod is the initiator of the flow. 
 
-In the previous section (Section 4) the flow could not be matched against The Kubernetes Network Policy "frontendpolicy", instead bypassed all the EgressRule tables. Because that flow' s destination IP was still the backendsvc service IP and Kubernetes Network Policy would not make an accurate check in that case and legitimate flows would have been blocked. This is the reason as to why the flow in Section 4 bypassed all the Egress Rule tables and got redirected to antrea-gw0 interface onwards to Kernel IP stack for iptables rule processing. Only after kube-proxy managed iptables rules applied DNAT on that flow (in Section 4.8), which essentially translated the destination backendsvc service IP to one of the backend pods IP, then the current flow can be processed by Kubernetes Network Policy "frontendpolicy" as will be explained in this step. 
+In the previous section (Section 4) the flow could not be matched against this table, instead it bypassed all the EgressRule tables. Because that flow' s destination IP was still the backendsvc service IP and Kubernetes Network Policy would not make an accurate check in that case and legitimate flows would have been blocked. This is the reason as to why the flow in Section 4 bypassed all the Egress Rule tables and got redirected to antrea-gw0 interface onwards to Kernel IP stack for iptables rule processing. Only after kube-proxy managed iptables rules applied DNAT on that flow (in Section 4.8), which essentially translated the destination backendsvc service IP to one of the backend pods IP, then the flow now can be processed by this Table 50 as will be explained in this step. 
 
 The content of the "frontendpolicy" is shown below.
 
@@ -583,7 +583,7 @@ vmware@master:~$
 vmware@master:~$ 
 </code></pre>
 
-The egress section of this network policy is highlighted in the above output. In this network policy, frontend pod can initiate HTTP to backend pods and it can initiate DNS to anywhere. All other type of traffic from frontend pod will be denied. Notice the current flow is from frontend pod to backend1 pod; hence the current flow is now subject to Kubernetes Network Policy "frontendpolicy" ' s egress rules that are applied to the frontend pod.
+The egress section of this network policy is highlighted in the above output. In this network policy, frontend pod can initiate HTTP to backend pods and it can initiate DNS to anywhere. All other egress traffic from frontend pod will be denied. 
 
 **Note :** The reason DNS is also allowed is, when the frontend pod sends a request to the backendsvc service by its name, a DNS query is sent by frontend pod to Kubernetes DNS so that frontend pod can call out one of the backend pods by their IPs, hence DNS has to be allowed to make this work. **As mentioned before, this article focuses on the actual application flow which occurs after the DNS query. In this section the flow from frontend pod to backend1 pod on TCP port 80 is explained.**
 
@@ -606,7 +606,7 @@ vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ov
 vmware@master:~$ 
 </code></pre>
 
-One thing to emphasize here again is that this table includes the egress rules of all the Kubernetes Network Policies applied to all of the pods on Worker 1 node (not only the egress rules configured on "frontendpolicy" and applied to frontend pod). Cause there is a frontend pod and a backend1 pod running on Worker 1 node. However the focus in this section is on the flow entries which correspond to the egress rules of the Kubernetes Network Policy "frontendpolicy" which is applied to the frontend pod.
+One thing to emphasize here again is that this table includes the egress rules of all the Kubernetes Network Policies applied to all of the pods on Worker 1 node (not only the egress rules configured on "frontendpolicy" and applied to frontend pod). Cause there is a frontend pod and a backend1 pod running on Worker 1 node. 
 
 First thing to understand from above table is OVS uses "conjunctive" match across multiple fields alongside "conjunction" action. This enables OVS to optimize policy implementation without consuming too many flow entries.
 
