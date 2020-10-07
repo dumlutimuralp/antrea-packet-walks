@@ -682,9 +682,9 @@ Based on the current flow' s source and destination MAC/IP values the flow match
 
 - First action is to decrement the TTL ("dec_ttl") since the destination IP of the flow is on another subnet than the one frontend pod is, so this flow is actually a routed flow.  
 
-- Second action is to modify the source MAC address of the flow "mod_dl_src: 4e:99:08:c1:53:be" to the antrea-gw0 interface of Worker 1 node
+- Second action is to modify the source MAC address of the flow "mod_dl_src: 4e:99:08:c1:53:be" (which is the antrea-gw0 interface MAC of Worker 1 node)
 
-- Third action is to modify the destination MAC address of the flow "mod_dl_dst: aa:bb:cc:dd:ee:ff" 
+- Third action is to modify the destination MAC address of the flow "mod_dl_dst: aa:bb:cc:dd:ee:ff" (This MAC address is related to ARP processing and will be explained in [Part D Section 12](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_d)).
 
 - Fourth action is to set the "NXM_NX_REG1" bit to "0x1" (by load:0x1 in hex, which is 1 in decimal). This register represents the OF Port ID which this flow will be sent through.  "1" is the OF Port ID for the tunnel0 interface (genev_sys_6081 interface on Linux) used for overlay networking between Kubernetes worker nodes. The outputs and diagrams shown in [Part A Section 3.4](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_a#34-identifying-ovs-port-ids-of-port-ids) can be reviewed again to see OF Port ID.
 
@@ -694,7 +694,7 @@ Based on the current flow' s source and destination MAC/IP values the flow match
 
 - Seventh action is "resubmit(,105)" which basically hands the flow over to Table 105. Hence next stop is Table 105. 
 
-**Note 1:** Notice that the original source and destination MAC address in the flow are already the values which are written by the second and third actions in seventh flow entry. Why are those still rewritten ? The reason is this same flow entry (seventh flow entry) is used also for the flows between Pods on different nodes, in which the source MAC ofthe flow would be source Pod' s MAC and destination MAC would be the antrea-gw0 interface of the node where source Pod is running. So with one flow entry two different types of flows are addressed. One is service to pod (on another node) flows, the other is pod to pod (on another node) flows.
+**Note 1:** Notice that the original source and destination MAC address in the flow are already the values which are written by the second and third actions in seventh flow entry. Why are those still rewritten ? The reason is this same flow entry (seventh flow entry) is used also for the flows between pods on different nodes, in which the source MAC of the flow would be source pod' s MAC and destination MAC would be the antrea-gw0 interface of the node where source pod is running. So with one flow entry two different types of flows are addressed. One is service to pod (on another node) flows, the other is pod to pod (on another node) flows.
 
 **Note 2:** The flow here skips Table 80 (L2 Forwarding) and 90 (Ingress Rules). The OF Port ID of the port which this flow will be sent through is already written to register Reg1 and the ingress rules will be processed at the other end (Worker 2 node) cause the receiving pod is on a different node. 
 
@@ -716,15 +716,20 @@ The first flow entry checks whether if the flow is a new flow (+new) and if it i
 
 The second flow entry checks whether if the flow is a new flow (+new) and if it is a tracked flow (+trk). 
 
-The current flow is a NEW and TRACKED flow and additionally it is coming from the gateway interface hence its reg0[0..15] was already set to "1" earlier in Table 10 (Section 5.1). **So the current flow matches the first flow entry in Table 105.** The actions in the first flow entry is to commit this tracked flow to conntrack table and hand it over to Table 110 (actions=ct(commit,table=110..)) and also set the NXM_NX_CT_MARK[] register to 0x20 (load:0x20) . The next stop is Table 110.
+The current flow is a NEW and TRACKED flow and additionally it is coming from the gateway interface hence its reg0[0..15] was already set to "1" earlier in Table 10 (Section 5.1). **So the current flow matches the first flow entry in Table 105.** The actions in the first flow entry are as following :
 
-**Note :** NSM_NX_CT_MARK register is used at a later stage for identifying the response from the backend2 pod and take the appropriate action on that return traffic. The reason is backend2 pod' s response to the current flow will have to be steered back to antrea-gw0 interface on Worker 1 node for ip tables NAT rule processing. It will be explained in Section 10.
+- commit this tracked flow to conntrack table and hand it over to Table 110 (actions=ct(commit,table=110..)) 
+- set the NXM_NX_CT_MARK[] register to 0x20 (load:0x20)
+
+The next stop is Table 110.
+
+**Note : NSM_NX_CT_MARK register is used at a later stage for identifying the response from the backend2 pod and take the appropriate action on that return traffic.** The reason is backend2 pod' s response to the current flow will have to be steered back to antrea-gw0 interface on Worker 1 node for ip tables NAT rule processing. It will be explained in Section 10.
 
 ## 9.9 L2ForwardingOut Table #110
 
 Table 110 on Worker 1 node is shown below.
 
-This table' s job is simple. First flow entry in this table first reads the value in register reg0[16]. If the value of this register is "1" in decimal, that means the destination MAC address is known to OVS and the flow should be able to get forwarded (otherwise it would get dropped). The same flow entry has an action defined as "actions=output:NXM_NX_REG1[]". What this action does is it reads the value in "NXM_NX_REG1" to determine the OF port this flow will be sent through and then sends the flow onwards to that port.
+This table' s job is simple. First flow entry in this table first reads the value of register reg0[16] in the flow. If the value of this register is "1" in decimal, that means the destination MAC address is known to OVS and the flow should be able to get forwarded (otherwise it would get dropped). The same flow entry has an action defined as "actions=output:NXM_NX_REG1[]". What this action does is it reads the value in "NXM_NX_REG1" to determine the OF port this flow will be sent through and then sends the flow onwards to that port.
 
 <pre><code>
 vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ovs -- ovs-ofctl dump-flows br-int table=110 --no-stats
@@ -733,7 +738,7 @@ vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ov
 vmware@master:~$
 </code></pre>
 
-The value of reg0[16] was set to "1" back in L3Forwarding Table #70 (Section 9.7). The value of REG1 was set to "0x1" (which is "1" in decimal) also back in L3Forwarding Table #70. "1" is the OF Port ID of tunnel0 interface (genev_sys_6081 interface on Linux). **Hence the OVS sends this flow onwards to the tunnel0 interface.** 
+The value of reg0[16] in the current flow was set to "1" back in L3Forwarding Table #70 (Section 9.7). The value of REG1 in the current flow was set to "0x1" (which is "1" in decimal) also back in L3Forwarding Table #70. "1" is the OF Port ID of tunnel0 interface (genev_sys_6081 interface on Linux). **Hence the OVS sends the current flow onwards to the tunnel0 interface.** 
 
 **Note :** The second flow entry in this table obviously drops the flows which do not have their "reg0[16]" register set.
 
