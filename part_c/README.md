@@ -500,7 +500,7 @@ Table #40 on Worker 1 node is shown below.
 <pre><code>
 vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ovs -- ovs-ofctl dump-flows br-int table=40 --no-stats
  cookie=0x1040000000000, table=40, priority=200,ip,w_dst=10.96.0.0/12 actions=mod_dl_dst:4e:99:08:c1:53:be,load:0x2->NXM_NX_REG1[],load:0x1->NXM_NX_REG0[16],resubmit(,105)
- cookie=0x1000000000000, table=40, priority=0 actions=resubmit(,50)
+ <b>cookie=0x1000000000000, table=40, priority=0 actions=resubmit(,50)</b>
 vmware@master:~$ 
 </code></pre>
 
