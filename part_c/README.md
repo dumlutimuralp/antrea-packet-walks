@@ -516,9 +516,9 @@ The destination IP of the current flow is backend2 pod IP (10.222.2.34) and it d
 
 At this stage, the flow is in Table 50. 
 
-Table 50 has flow entries which correspond to the egress rules configured in Kubernetes Network Policies applied to the pods on Worker 1 node. There is a frontend pod and a backend1 pod on the Worker 1 node. "frontendpolicy" is applied to frontend pod and "backendpolicy" is applied to backend1 pod and backend2 pod (on Worker2) . 
+Table 50 has flow entries which correspond to the egress rules configured in Kubernetes Network Policies applied to all the pods on Worker 1 node. There is a frontend pod and a backend1 pod on the Worker 1 node. "frontendpolicy" is applied to frontend pod and "backendpolicy" is applied to backend1 pod and backend2 pod (on Worker2) . 
 
-In the previous section (Section 8) the flow could not be matched against The Kubernetes Network Policy "frontendpolicy", instead bypassed all the EgressRule tables. Because that flow' s destination IP was still the backendsvc service IP and Kubernetes Network Policy would not make an accurate check in that case and legitimate flows would have been blocked. This is the reason as to why the flow in Section 8 bypassed all the Egress Rule tables and got redirected to antrea-gw0 interface onwards to Kernel IP stack for iptables rule processing. Only after kube-proxy managed iptables rules applied DNAT on that flow (in Section 8.8), which essentially translated the destination backendsvc service IP to one of the backend pods IP, then the flow now can be processed by this Table 50 as will be explained in this step. 
+In the previous section (Section 8) the flow could not be matched against this table, instead it bypassed all the EgressRule tables. Because that flow' s destination IP was still the backendsvc service IP and Kubernetes Network Policy would not make an accurate check in that case and legitimate flows would have been blocked. This is the reason as to why the flow in Section 8 bypassed all the Egress Rule tables and got redirected to antrea-gw0 interface onwards to Kernel IP stack for iptables rule processing. Only after kube-proxy managed iptables rules applied DNAT on that flow (in Section 8.8), which essentially translated the destination backendsvc service IP to one of the backend pods IP, then the flow now can be processed by this Table 50 as will be explained in this step.
 
 The content of the "frontendpolicy" is shown below.
 
@@ -600,8 +600,6 @@ vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ov
 vmware@master:~$ 
 </code></pre>
 
-One thing to emphasize here again is that this table includes the egress rules of all the Kubernetes Network Policies applied to all of the pods on Worker 1 node (not only the egress rules configured on "frontendpolicy" and applied to frontend pod). Cause there is a frontend pod and a backend1 pod running on Worker 1 node. 
-
 First thing to understand from above table is OVS uses "conjunctive" match across multiple fields alongside "conjunction" action. This enables OVS to optimize policy implementation without consuming too many flow entries.
 
 The first flow entry in Table 50 above checks whether if the flow is an already established flow (-new,+est); if it is then there is no need to process the flow against the remaining flow entries in this table since Kubernetes Network Policy is STATEFUL by nature. However the current flow is a NEW flow hence it does NOT match this first flow entry.
@@ -636,9 +634,9 @@ The tenth flow entry defines two actions for conjunction 1 as soon as all fields
 
 For reference, remaining flow entries are explained below : 
 
-The eleventh flow entry also defines two actions for conjunction 5 as soon as all fields of conjunction 5 is matched. As mentioned before, this conjunction id has got nothing to do with "frontendpolicy" and it is not relevant here. It actually coresponds to the egress rules configured in "backendpolicy".
+The eleventh flow entry also defines two actions for conjunction 5 as soon as all fields of conjunction 5 is matched. As mentioned before, this conjunction id has got nothing to do with "frontendpolicy" and it is not relevant here. It actually corresponds to the egress rules configured in "backendpolicy".
 
-Last flow entry in this table defines that if the flow does not match any of the above entries then the flow is handed over to Table 60 which is EgressDefaultTable (resubmit(,60)). Table 60 is for isolation rules. Basically when a Kubernetes Network Policy is applied to a pod, the flows which do not match any of the in Table 50 will be dropped by Table 60.
+Last flow entry in this table defines that if the flow does not match any of the above entries then the flow is handed over to Table 60 which is EgressDefaultTable (resubmit(,60)). Table 60 is for isolation rules. Basically when a Kubernetes Network Policy is applied to a pod, the flows which do not match any of the entries in Table 50 will be dropped by Table 60.
 
 For reference, EgressDefault Table #60 on Worker 1 node is shown  below. As the current flow matches conjunction 1 in Table 50, Table 60 will be bypassed.
 
@@ -1545,7 +1543,7 @@ The current flow' s source and destination MAC and IP address values are still a
 
 Based on the current flow' s source and destination IP/MAC values, the current flow matches the last flow entry in Table 70 (since the prior flow entries match against a different destination MAC). The action in the last flow entry is "resubmit(,80)" which basically hands over the flow to Table 80. Hence next stop is Table 80.
 
-**Note :** The first five flow entries in this table are related to ARP processing "aa:bb:cc:dd:ee:ff" and will be explained in [Part D Section 12](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_d). The sixth and seventh flow entries in this table are for inter node flow patterns where the destination is on another node.
+**Note :** The first five flow entries in this table are related to ARP processing (with "dl_dst=aa:bb:cc:dd:ee:ff") and will be explained in [Part D Section 12](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_d). The sixth and seventh flow entries in this table are for inter node flow patterns where the destination is on another node.
 
 ### 10.11.7 L2ForwardingCalc Table #80
 
@@ -2010,7 +2008,7 @@ The current flow' s source and destination MAC and IP address values are as foll
 
 Based on the current flow' s source and destination MAC/IP values, the current flow matches the last flow entry in Table 70 (since the prior flow entries match against a different destination MAC). The action in the last flow entry is "resubmit(,80)" which basically hands the flow over to Table 80. Hence next stop is Table 80.
 
-**Note :** The first five flow entries in this table are related to ARP processing "aa:bb:cc:dd:ee:ff" and will be explained in [Part D Section 12](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_d). The sixth and seventh flow entries in this table are for inter node flow patterns where the destination is on another node.
+**Note :** The first five flow entries in this table are related to ARP processing (with "dl_dst=aa:bb:cc:dd:ee:ff") and will be explained in [Part D Section 12](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_d). The sixth and seventh flow entries in this table are for inter node flow patterns where the destination is on another node.
 
 ## 11.8 L2ForwardingCalc Table #80
 
