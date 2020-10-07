@@ -847,7 +847,7 @@ The second flow entry checks whether if the flow is a new flow (+new) and if it 
 
 The current flow is a NEW and TRACKED flow and additionally it is coming from the gateway interface hence its reg0[0..15] was already set to "1" earlier in Table 10 (Section 5.1). <b>So the current flow matches the first flow entry in Table 105</b>. The actions in the first flow entry are as following :
 
-- to commit this tracked flow to conntrack table and hand it over to Table 110 (actions=ct(commit,table=110..)) 
+- commit this tracked flow to conntrack table and hand it over to Table 110 (actions=ct(commit,table=110..)) 
 - set the NXM_NX_CT_MARK[] register to 0x20 (load:0x20)
 
 The next stop is Table 110.
@@ -865,9 +865,9 @@ vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ov
 vmware@master:~$
 </code></pre>
 
-This table' s job is simple. First flow entry in this table first reads the value in register reg0[16]. If the value of this register is "1" in decimal, that means the destination MAC address is known to OVS and the flow should be able to get forwarded (otherwise it would get dropped). The same flow entry has an action defined as "actions=output:NXM_NX_REG1[]". What this action does is it reads the value in "NXM_NX_REG1" to determine the OF port this flow will be sent through and then sends the flow onwards to that port.
+This table' s job is simple. First flow entry in this table first reads the value of register reg0[16] in the flow. If the value of this register is "1" in decimal, that means the destination MAC address is known to OVS and the flow should be able to get forwarded (otherwise it would get dropped). The same flow entry has an action defined as "actions=output:NXM_NX_REG1[]". What this action does is it reads the value in "NXM_NX_REG1" to determine the OF port this flow will be sent through and then sends the flow onwards to that port.
 
-<b>The value of REG1  was set to "0x30" (which is "48" in decimal) back in L2ForwardingCalc Table #80. "48" is the OF Port ID of backend1 pod interface. The value reg0[16] was set to "1" also back in L2ForwardingCalc Table #80 . Hence the OVS sends this flow onwards to the backend1 pod on OF port 48.</b>
+<b>The value reg0[16] in the current flow was set to "1" back in L2ForwardingCalc Table #80. The value of REG1 in the current flow was set to "0x30" (which is "48" in decimal) also back in L2ForwardingCalc Table #80. "48" is the OF Port ID of backend1 pod interface. Hence the OVS sends the current flow onwards to the backend1 pod on OF port 48.</b>
 
 **Note :** The second flow entry in this table obviously drops the flows which do not have their "reg0[16]" register set.
 
