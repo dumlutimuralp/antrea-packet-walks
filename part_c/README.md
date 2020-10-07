@@ -763,7 +763,7 @@ vmware@master:~$ kubectl exec -it frontend -- sh
 Praqma Network MultiTool (with NGINX) - backend2 - 10.222.2.34/24
 </code></pre>
 
-while performing curl on frontend pod (as shown above), in another ssh session to the Kubernetes Worker 1 node :
+While performing curl on frontend pod (as shown above), in another ssh session to the Kubernetes Worker 1 node :
 
 <pre><code>
 vmware@worker1:~$ sudo tcpdump -i ens160 -en udp port 6081
