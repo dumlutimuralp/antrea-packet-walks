@@ -388,13 +388,13 @@ Next step is the flow to be sent from backendsvc service to one of the backend p
 
 To verify the Ethernet and IP headers of this flow, a quick tcpdump on the antrea-gw0 interface of the Worker 1 node would reveal the source and destination IP/MAC of this flow. 
 
-While performing "curl backendsvc" on frontend pod, connect to the Kubernetes Worker 1 node and get tcpdump. As shown below.
-
 <pre><code>
 vmware@master:~$ kubectl exec -it frontend -- sh
 / # curl backendsvc
 Praqma Network MultiTool (with NGINX) - backend1 - 10.222.1.47/24
 </code></pre>
+
+While performing "curl backendsvc" on frontend pod (shown above), connect to the Kubernetes Worker 1 node and get tcpdump. As shown below.
 
 <pre><code>
 vmware@worker1:~$ sudo tcpdump -en -i antrea-gw0 host 10.222.1.47
