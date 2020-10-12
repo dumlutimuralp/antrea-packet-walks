@@ -787,7 +787,7 @@ At this stage the inner headers have the following IP/MAC. (they have not change
 - Source IP = 10.222.1.48 (frontend pod IP)
 - Destination IP = 10.222.2.34 (backend2 pod IP)
 - Source MAC = 4e:99:08:c1:53:be (antrea-gw0 interface MAC on Worker 1)
-- Destination MAC = aa:bb:cc:dd:ee:ff (When the destination pod is on a different node this global virtual MAC is used. It is explained in [Part D Section 12](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_d#12-arp-process) 
+- Destination MAC = aa:bb:cc:dd:ee:ff (When the destination pod is on a different node this global virtual MAC is used. It is explained in [Part D Section 12](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_d#12-arp-process). 
 
 ### 9.11.1 Classifier Table #0
 
@@ -807,7 +807,7 @@ This table is to classify the current flow by matching it on the ingress port an
 
 The current flow came from tunnel0 interface hence it matches the <b>second</b> flow entry in the above output (which is highlighted). There are multiple actions in the second flow entry.
 
-- First action is "move:NXM_NX_TUN_METADATA0[28..31]->NXM_NX_REG9[28..31]" which actually writes a tag for Antrea traceflow feature usage
+- First action is "move:NXM_NX_TUN_METADATA0[28..31]->NXM_NX_REG9[28..31]" which actually writes a tag which is used by another feature of Antrea called "traceflow". More info on it can be found [here](https://github.com/vmware-tanzu/antrea/blob/master/docs/traceflow-guide.md).
 
 - Second action is to set the reg0[0..15] to "0", meaning that this traffic has come to OVS from the tunnel interface
 
@@ -815,7 +815,7 @@ The current flow came from tunnel0 interface hence it matches the <b>second</b> 
 
 - Fourth action is to hand the flow over to the next table, which is Table 30 (resubmit(,30)).
 
-Notice that the current flow bypasses Spoofguard Table 10.
+**Notice that the flow bypasses Spoofguard Table 10.**
 
 ### 9.11.2 ConntrackTable Table #30
 
@@ -884,7 +884,7 @@ vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-fv5x9 -c antrea-ov
 vmware@master:~$ 
 </code></pre>
 
-The current flow is from frontend pod to backend2 pod and it is a NEW flow. Hence it will match the last entry in this table. The last entry has a single action which is handing the flow over to Table 60 (resubmit(,60)). Hence next stop is Table 60.
+The current flow is from frontend pod to backend2 pod and it is a NEW flow. Hence it will match the last entry in this table (highlighted above). The same flow entry has a single action which is handing the flow over to Table 60 (resubmit(,60)). Hence next stop is Table 60.
 
 ### 9.11.5 EgressDefaultRule Table #60
 
@@ -897,7 +897,7 @@ vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-fv5x9 -c antrea-ov
 vmware@master:~$ 
 </code></pre>
 
-The current flow is from frontend pod to backend2 pod. The source IP in the current flow is frontend pod IP (10.222.1.48) . Hence it will match the last entry in this table. The last entry has a single action which is handing the flow over to Table 70 (resubmit(,70)). Hence next stop is Table 70.
+The current flow is from frontend pod to backend2 pod hence the source IP is frontend pod IP (10.222.1.48) . Hence it will match the last entry in this table. The last entry has a single action which is handing the flow over to Table 70 (resubmit(,70)). Hence next stop is Table 70.
 
 ### 9.11.6 L3Forwarding Table #70
 
@@ -1033,7 +1033,7 @@ vmware@master:~$
 
 The first flow entry checks whether if the flow is an already established flow (-new,+est); if it is then there is no need to process the flow against the remaining flow entries, since Kubernetes Network Policy is STATEFUL by nature. However the current flow is a NEW flow hence it does NOT match this first flow entry.
 
-The second flow entry matches on the source IP of 10.222.2.1 (antrea-gw0 IP). The same flow entry has an action of handing the flow over to Table 105. This flow entry is used by the kubelet process on the node to probe local pods. More info can be found [here](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/). However the current flow' s source IP is not 10.222.2.1.
+The second flow entry matches on the source IP of 10.222.2.1 (antrea-gw0 IP). The same flow entry has an action of handing the flow over to Table 105. This flow entry is used by the kubelet process on the node to probe local pods. More info can be found [here](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/). 
 
 The third flow entry matches on source IP of 10.222.1.48 (frontend pod IP). The same flow entry has a conjunction action with a conjunction id of "1".
 
@@ -1053,7 +1053,7 @@ For reference, remaining flow entries are explained below :
 
 Last flow entry in Table 90 defines that if the flow does not match any of the above entries then the flow will be handed over to Table 100 which is IngressDefaultTable (resubmit(,100)). Table 100 is for isolation rules. Basically when a network policy is applied to a pod, the flows which do not match any of the allowed ingress flows in Table 90 will be dropped by Table 100.
 
-For reference, IngressDefault table on Worker 2 can be seen below. As the current flow has matched conjunction 1, Table 100 will be bypassed as the current flow is allowed in Table 90 by Kubernetes Network Policy applied to backend2 pod. 
+For reference, IngressDefault table on Worker 2 can be seen below. As the current flow matched conjunction 1,it bypasses Table 100. 
 
 <pre><code>
 vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-fv5x9 -c antrea-ovs -- ovs-ofctl dump-flows br-int table=100 --no-stats
@@ -1062,9 +1062,9 @@ vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-fv5x9 -c antrea-ov
 vmware@master:~$ 
 </code></pre>
 
-First two flow entries drops all the other flows destined to the OF port 0x23 which the backend2 pod is connected to.
+First flow entry drops all the other flows destined to the OF port 0x23 which the backend2 pod is connected to.
 
-The last flow entry in Table 100 basically hands over all the other flows, which did not match any of the conjunctions in Table 90 or the other flow entries in Table 100, to the next table - Table 105. 
+The second/last flow entry in Table 100 basically hands all the flows, which do not match any of the conjunctions in Table 90 or the first flow entry, to the next table - Table 105. 
 
 ### 9.11.9 ConntrackCommit Table #105
 
