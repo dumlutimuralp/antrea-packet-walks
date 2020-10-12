@@ -1146,8 +1146,8 @@ listening on eth0, link-type EN10MB (Ethernet), capture size 262144 bytes
 **Note 1:** For simplicity, the ARP requests/replies between antrea-gw0, frontend pod and backend2 pod are not shown in the above output.
 
 - The source and destination MAC addresses of the first line in the tcpdump output are antrea-gw0 MAC(of Worker 2 node) and backend2 pod MAC (the flow explained in Section 9.11.6)
-- The source and destination MAC addresses of the second line in the tcpdump output are backend2 pod MAC and antrea-gw0  MAC (of Worker 2 node) the flow that will be explained in this section)
-- The source or destination IP addresses are always frontend pod IP and backend pod IP
+- The source and destination MAC addresses of the second line in the tcpdump output are backend2 pod MAC and antrea-gw0  MAC (of Worker 2 node) (the flow that will be explained in this section)
+- The source or destination IP addresses are always frontend pod IP and backend2 pod IP
 
 The response that backend2 pod generates has the following values in the Ethernet and IP headers and this is the flow that this section focuses on.
 
@@ -1178,7 +1178,7 @@ vmware@master:~$
 
 This table is to classify the current flow by matching it on the ingress port and then setting the register NXM_NX_REG0[0..15] bits as following; "0" for tunnel, "1" for local gateway and "2" for local pod. 
 
-The current flow came from backend2 pod interface hence it matches the <b>fourth</b> flow entry in the above output (which is highlighted). Fourth flow entry sets the reg0[0..15] to "2", meaning that this traffic has come to OVS from a local pod and then it hands the flow over to the next table, which is Table 10 (resubmit(,10)). 
+The current flow came from backend2 pod interface hence it matches the <b>fourth</b> flow entry in the above output (which is highlighted). The first action in this flow entry sets the reg0[0..15] to "2" since the flow comes from a local pod. The second action in this flow entry is to hand the flow over to the next table, which is Table 10 (resubmit(,10)). Hence next stop is Table 10.
 
 ## 10.2 Spoofguard Table #10
 
@@ -1198,7 +1198,7 @@ vmware@master:~$
 
 What this table does is verifying if the source IP and MAC of the current flow matches the IP and MAC assigned to the Pod by Antrea CNI plugin during initial Pod connectivity. It implements this check both for IP and ARP traffic.
 
-Since the flow comes from the backend2 pod interface, the flow will match the <b>sixth</b> flow entry in this table. The source IP/MAC of the current flow belongs to backend2 pod; so spoofguard check succeeds. The only action specified in the sixth flow entry is handing the flow over to Table 30 (actions=resubmit(,30)). So next stop is Table 30.
+Since the flow comes from the backend2 pod with backend2 pod' s IP and MAC, the flow will match the <b>sixth</b> flow entry in this table and the spoofguard check succeeds. The only action specified in the sixth flow entry is handing the flow over to Table 30 (actions=resubmit(,30)). So next stop is Table 30.
 
 ## 10.3 ConntrackTable Table #30
 
@@ -1236,7 +1236,7 @@ The second flow entry checks whether if the flow is not new and tracked ("ct_sta
 
 The third flow entry checks if the flow is INVALID but TRACKED, basically it drops all these types of flows.
 
-The current flow from backend2 pod to frontend pod is NOT NEW and it is a TRACKED flow, so its "ct_state" is "-new+trk". However its "ct_mark" field of the is not set. 
+The current flow from backend2 pod to frontend pod is NOT NEW and it is a TRACKED flow, so its "ct_state" is "-new+trk". However its "ct_mark" field **is not set.** 
 
 Hence the current flow will match the **last** flow entry in the flow table highlighted above. The action in the same flow entry is handing the flow over to the next table which is table 40 (resubmit(,40). So next stop is Table 40.
 
@@ -1477,7 +1477,7 @@ The current flow from backend2 pod to frontend pod is NOT NEW, it is the respons
 
 Hence the current flow will match all the conditions in the **second** flow entry in the flow table highlighted above. There are two actions specified in that second flow entry. First action is to set the destination MAC to "4e:99:08:c1:53:be" which is the antrea-gw0 MAC on the Worker 1 node. (by 0x4e9908c153be->NXM_OF_ETH_DST[]) The second action in the same flow entry is handing the flow over to the next table which is table 40 (resubmit(,40). So next stop is Table 40.
 
-**Note :** The reason for the destination MAC rewrite (from original destination MAC of frontend pod to new destination MAC which is gw0 MAC) is to steer the flow back to Linux Kernel IP stack for the flow to be processed kube-proxy managed iptables NAT rules again. (similar to the way back in 8.8 but this time it will be SNAT, not DNAT. Since the frontend pod should receive the response from backendsvc service IP)
+**Note :** The reason for the destination MAC rewrite (from original destination MAC of frontend pod to new destination MAC which is gw0 MAC) is to steer the flow back to Linux Kernel IP stack for the flow to be processed kube-proxy managed iptables NAT rules again. (Cause this is the return traffic for the same flow which was DNATed back in 8.8, so this time iptables will perform SNAT.)
 
 ### 10.11.4 DNAT Table #40
 
