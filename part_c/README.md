@@ -1064,7 +1064,7 @@ vmware@master:~$
 
 First flow entry drops all the other flows destined to the OF port 0x23 which the backend2 pod is connected to.
 
-The second/last flow entry in Table 100 basically hands all the flows, which do not match any of the conjunctions in Table 90 or the first flow entry, to the next table - Table 105. 
+The second/last flow entry in Table 100 basically hands all the flows, which do not match any of the conjunctions in Table 90 or the first flow entry in Table 100, to the next table - Table 105. 
 
 ### 9.11.9 ConntrackCommit Table #105
 
@@ -1073,7 +1073,7 @@ Table 105 on Worker 2 node is shown below.
 <pre><code>
 vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-fv5x9 -c antrea-ovs -- ovs-ofctl dump-flows br-int table=105 --no-stats
  cookie=0x1000000000000, table=105, priority=200,ct_state=+new+trk,ip,reg0=0x1/0xffff actions=ct(commit,table=110,zone=65520,exec(load:0x20->NXM_NX_CT_MARK[]))
- cookie=0x1000000000000, table=105, priority=190,ct_state=+new+trk,ip actions=ct(commit,table=110,zone=65520)
+ <b>cookie=0x1000000000000, table=105, priority=190,ct_state=+new+trk,ip actions=ct(commit,table=110,zone=65520)</b>
  cookie=0x1000000000000, table=105, priority=0 actions=resubmit(,110)
 vmware@master:~$ 
 </code></pre>
@@ -1084,7 +1084,12 @@ The first flow entry checks whether if the flow is a new flow (+new) and if it i
 
 The second flow entry checks whether if the flow is a new flow (+new) and if it is a tracked flow (+trk). 
 
-In this case the current flow matches this <b>second</b> flow entry. It is not coming from the gateway interface; it is coming from the tunnel interface.   It is a new flow from frontend pod to backend2 pod and it is being tracked (previously from Conntrack Table 30 and 31). Hence the current flow is committed to conntrack table (actions=ct(commit,..)) and then it is handed over to the next table (,table=110). So next stop is Table 110. 
+In this case the current flow matches this <b>second</b> flow entry. It is not coming from the gateway interface; it is coming from the tunnel interface.   It is a new flow from frontend pod to backend2 pod and it is being tracked (previously from Conntrack Table 30 and 31). The actions in that second flow entry are as following :
+
+- commit this tracked flow to conntrack table (actions=ct(commit,..)) 
+- hand the flow over to the next table (,table=110)
+
+The next stop is Table 110. 
 
 ### 9.11.10 L2ForwardingOut Table #110
 
