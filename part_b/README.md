@@ -825,7 +825,7 @@ vmware@master:~$
 
 Reason there are two different OF port IDs in the first two flow entries here is, there is an ingress rule used in two different Kubernetes Network Policies; one is "frontendpolicy" applied to frontend pod, the other is "backendpolicy" applied to backend pods. Each of the first two flow entries in this table applies to the respective pod' s OVS interface, running on Worker 1 node. 
 
-The last flow entry in Table 100 basically hands all the flows, which do not match any of the conjunctions in Table 90 or the drop flow entries in Table 100, over to the next table - Table 105. 
+The last flow entry in Table 100 basically hands all the flows, which do not match any of the conjunctions in Table 90 or the first flow entries in Table 100, over to the next table - Table 105. 
 
 ## 5.10 ConntrackCommit Table #105
 
