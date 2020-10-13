@@ -1122,7 +1122,7 @@ So bit 16 must be "1", and that is being verified in "reg0". The first four bits
 
 In this section the response from backen2 pod (on Worker 2 node) to the frontend pod (on Worker 1 node) will be explained. However the title above says "Backend Pod to Service" ? Why ? 
 
-The flow which made its way to the backend2 pod (in Section 9) had the source IP of frontend pod (10.222.1.48) and destination IP of backend2 pod (10.222.2.34). Hence backend2 pod will reply to frontend pod with its own IP (10.222.2.34) which is expected by any TCP/IP based communication. OVS could easily deliver the response to frontend pod directly.  **But this would break the communication.** The reason is when the frontend pod had initiated the connection (in Section 8) the source IP of the flow was frontend pod IP but the destination IP was backendsvc service IP (10.104.65.133). This destination service IP got DNATed by iptables to the destination IP of backend2 pod (10.222.2.34) in Section 8.8.  From frontend pod' s point of view it is communicating with backendsvc service IP. Because of this; return flow from backend2 pod to frontend pod should be **SNATed** now by iptables on Worker 1 node and be delivered to the frontend pod with the IP of the backendsvc service IP as the source IP. Hence OVS needs to steer the return flow from backend2 pod, which is destined to frontend pod, to the Worker 1 node' s Kernel IP Stack for iptables processing.
+The flow which made its way to the backend2 pod (in Section 9) had the source IP of frontend pod (10.222.1.48) and destination IP of backend2 pod (10.222.2.34). Hence backend2 pod will reply to frontend pod with its own IP (10.222.2.34) which is expected by any TCP/IP based communication. OVS could easily deliver the response to frontend pod directly.  **But this would break the communication.** The reason is when the frontend pod had initiated the connection (in Section 8) the source IP of the flow was frontend pod IP but the destination IP was backendsvc service IP (10.104.65.133). This destination service IP got DNATed by iptables to the destination IP of backend2 pod (10.222.2.34) in Section 8.8.  From frontend pod' s point of view it is communicating with backendsvc service IP. Because of this; return flow from backend2 pod to frontend pod should be **SNATed** now by iptables on Worker 1 node and be delivered to the frontend pod with the IP of the backendsvc service IP as the source IP. Hence OVS needs to steer the return flow from backend2 pod, which is destined to frontend pod, to the Worker 1 node' s Kernel IP Stack for iptables processing. 
 
 To verify how backend2 pod responds to requests from the frontend pod, a quick tcpdump on the backend2 pod would reveal the source and destination IP/MAC of this flow. It is shown below.
 
@@ -1328,7 +1328,7 @@ Table 105 on Worker 2 node is shown below.
 vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-fv5x9 -c antrea-ovs -- ovs-ofctl dump-flows br-int table=105 --no-stats
  cookie=0x1000000000000, table=105, priority=200,ct_state=+new+trk,ip,reg0=0x1/0xffff actions=ct(commit,table=110,zone=65520,exec(load:0x20->NXM_NX_CT_MARK[]))
  cookie=0x1000000000000, table=105, priority=190,ct_state=+new+trk,ip actions=ct(commit,table=110,zone=65520)
- cookie=0x1000000000000, table=105, priority=0 actions=resubmit(,110)
+ <b>cookie=0x1000000000000, table=105, priority=0 actions=resubmit(,110)</b>
 vmware@master:~$ 
 </code></pre>
 
@@ -1338,7 +1338,7 @@ The first flow entry checks whether if the flow is a new flow (+new) and if it i
 
 The second flow entry checks whether if the flow is a new flow (+new) and if it is a tracked flow (+trk). 
 
-The current flow does **NOT** match the first nor the second flow entry in this table. Because the current flow is the response of backend2 pod, hence it is part of an already established flow and it matches the last entry in this table. The action in the last flow entry is specified as "resubmit(,110)" which basically is handing the flow over to the Table 110. So next stop is Table 110.
+The current flow does **NOT** match the first nor the second flow entry in this table. Because the current flow is the response of backend2 pod, hence it is part of an already established flow and it matches the **last entry** in this table. The action in the last flow entry is specified as "resubmit(,110)" which basically is handing the flow over to the Table 110. So next stop is Table 110.
 
 ## 10.9 L2ForwardingOut Table #110
 
@@ -1417,7 +1417,7 @@ vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ov
  cookie=0x1030000000000, priority=190,in_port="coredns--3e3abf" actions=load:0x2->NXM_NX_REG0[0..15],resubmit(,10)
  cookie=0x1030000000000, priority=190,in_port="antrea-o-830766" actions=load:0x2->NXM_NX_REG0[0..15],resubmit(,10)
  cookie=0x1030000000000, priority=190,in_port="backend1-bab86f" actions=load:0x2->NXM_NX_REG0[0..15],resubmit(,10)
- <b>cookie=0x1030000000000, priority=190,in_port="frontend-a3ba2f" actions=load:0x2->NXM_NX_REG0[0..15],resubmit(,10)</b>
+ cookie=0x1030000000000, priority=190,in_port="frontend-a3ba2f" actions=load:0x2->NXM_NX_REG0[0..15],resubmit(,10)
  cookie=0x1000000000000, priority=0 actions=drop
 vmware@master:~$
 </code></pre>
@@ -1426,7 +1426,7 @@ This table is to classify the current flow by matching it on the ingress port an
 
 The current flow came from tunnel0 interface hence it matches the <b>second</b> flow entry in the above output (which is highlighted). There are multiple actions in the second flow entry.
 
-- First action is "move:NXM_NX_TUN_METADATA0[28..31]->NXM_NX_REG9[28..31]" which actually writes a tag for Antrea traceflow feature usage
+- First action is "move:NXM_NX_TUN_METADATA0[28..31]->NXM_NX_REG9[28..31]" which actually writes a tag which is used by another feature of Antrea called "traceflow". More info on it can be found [here](https://github.com/vmware-tanzu/antrea/blob/master/docs/traceflow-guide.md).
 
 - Second action is to set the reg0[0..15] to "0", meaning that this traffic has come to OVS from the tunnel interface
 
@@ -1434,7 +1434,7 @@ The current flow came from tunnel0 interface hence it matches the <b>second</b> 
 
 - Fourth action is to hand the flow over to the next table, which is Table 30 (resubmit(,30)).
 
-Notice that the current flow bypasses Spoofguard Table 10.
+**Notice that the flow bypasses Spoofguard Table 10.**
 
 ### 10.11.2 Conntrack Table #30
 
@@ -1471,11 +1471,11 @@ The second flow entry checks whether if the flow is not new and tracked ("ct_sta
 
 The third flow entry checks if the flow is INVALID but TRACKED, basically it drops all these types of flows.
 
-The current flow from backend2 pod to frontend pod is NOT NEW, it is the response to the flow explained in Section 9. The current flow is also a TRACKED flow, so its "ct_state" is "-new+trk". The "ct_mark" field of the current flow was set to "0x20" as explained back in section 9.8 (when the request from frontend pod to service to backend2 pod communication was processed by Table 105 previously in Phase 2) 
+The current flow from backend2 pod to frontend pod is NOT NEW, it is the response to the flow explained in Section 9. The current flow is also a TRACKED flow, so its "ct_state" is "-new+trk". The "ct_mark" field of the current flow was set to "0x20" as explained back in section 9.8 (when the request from frontend pod to service to backend2 pod communication was processed by Table 105) 
 
 Hence the current flow will match all the conditions in the **second** flow entry in the flow table highlighted above. There are two actions specified in that second flow entry. First action is to set the destination MAC to "4e:99:08:c1:53:be" which is the antrea-gw0 MAC on the Worker 1 node. (by 0x4e9908c153be->NXM_OF_ETH_DST[]) The second action in the same flow entry is handing the flow over to the next table which is table 40 (resubmit(,40). So next stop is Table 40.
 
-**Note :** The reason for the destination MAC rewrite (from original destination MAC of frontend pod to new destination MAC which is gw0 MAC) is to steer the flow back to Linux Kernel IP stack for the flow to be processed kube-proxy managed iptables NAT rules again. (Cause this is the return traffic for the same flow which was DNATed back in 8.8, so this time iptables will perform SNAT.)
+**Note :** The reason for the destination MAC rewrite (from original destination MAC of frontend pod to new destination MAC which is gw0 MAC) is to steer the flow back to Linux Kernel IP stack for the flow to be processed kube-proxy managed iptables NAT rules again. (Cause this is the return traffic for the same flow which was DNATed back in section 8.8, so this time iptables will perform SNAT.)
 
 ### 10.11.4 DNAT Table #40
 
@@ -1492,7 +1492,7 @@ This table in essence checks whether if the flow is destined to a Kubernetes ser
 
 The table has only two flow entries. The first flow entry checks whether if the destination IP of the flow is part of the service CIDR range configured in the cluster (which is 10.96.0.0/12); if it does, then certain actions are taken on the flow to steer the flow to the antrea-gw0 interface on the node.  
 
-The destination IP of the current flow is frontend pod IP (10.222.1.48) and it does not fall into the service CIDR range in the first flow entry in Table 40. Hence the current flow will match the second/last entry which basically hands over the flow to Table 50 (actions=resubmit(,50)) . So next stop is Table 50.
+The destination IP of the current flow is frontend pod IP (10.222.1.48) and it does not fall into the service CIDR range in the first flow entry in Table 40. Hence the current flow will match the second/last entry which basically hands the flow over to Table 50 (actions=resubmit(,50)) . So next stop is Table 50.
 
 **Note :** In the OVS Pipeline diagram [here](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_a/README.md#2-ovs-pipeline), there are tables 45-49 before Table50. However those tables are in use only when Antrea Network Policy feature of Antrea is used. In this Antrea environment, it is not used. 
 
@@ -1593,14 +1593,14 @@ The Table 90 on Worker 1 node is shown below.
 
 <pre><code>
 vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ovs -- ovs-ofctl dump-flows br-int table=90 --no-stats
- cookie=0x1000000000000, table=90, priority=210,ct_state=-new+est,ip actions=resubmit(,105)
+ <b>cookie=0x1000000000000, table=90, priority=210,ct_state=-new+est,ip actions=resubmit(,105)</b>
  cookie=0x1000000000000, table=90, priority=210,ip,nw_src=10.222.1.1 actions=resubmit(,105)
- <b>cookie=0x1050000000000, table=90, priority=200,ip,nw_src=10.222.1.48 actions=conjunction(3,1/3)</b>
- <b>cookie=0x1050000000000, table=90, priority=200,tcp,tp_dst=80 actions=conjunction(4,3/3),conjunction(3,3/3)</b>
- <b>cookie=0x1050000000000, table=90, priority=200,ip,reg1=0x30 actions=conjunction(3,2/3)</b>
+ cookie=0x1050000000000, table=90, priority=200,ip,nw_src=10.222.1.48 actions=conjunction(3,1/3)
+ cookie=0x1050000000000, table=90, priority=200,tcp,tp_dst=80 actions=conjunction(4,3/3),conjunction(3,3/3)
+ cookie=0x1050000000000, table=90, priority=200,ip,reg1=0x30 actions=conjunction(3,2/3)
  cookie=0x1050000000000, table=90, priority=200,ip,reg1=0x31 actions=conjunction(4,2/3)
  cookie=0x1050000000000, table=90, priority=200,ip actions=conjunction(4,1/3)
- <b>cookie=0x1050000000000, table=90, priority=190,conj_id=3,ip actions=load:0x3->NXM_NX_REG6[],resubmit(,105)</b>
+ cookie=0x1050000000000, table=90, priority=190,conj_id=3,ip actions=load:0x3->NXM_NX_REG6[],resubmit(,105)
  cookie=0x1050000000000, table=90, priority=190,conj_id=4,ip actions=load:0x4->NXM_NX_REG6[],resubmit(,105)
  cookie=0x1000000000000, table=90, priority=0 actions=resubmit(,100)
 vmware@master:~$ 
@@ -1610,7 +1610,7 @@ This table consists of the corresponding flow entries of the ingress rules that 
 
 The current flow is actually the response of backend2 pod to frontend pod as part of the previous request from frontend pod (the flow which is explained in previous section 9); because of this reason the current flow is not NEW and it is part of an already ESTABLISHED flow.
 
-Hence the current flow will match the first flow entry in this table ("ct_state=-new+est"). The action specified in this first flow entry is handing the flow over to Table 105 (actions=resubmit(,105)). So next stop is Table 105. 
+Hence the current flow will match the **first flow entry** in this table ("ct_state=-new+est"). The action specified in this first flow entry is handing the flow over to Table 105 (actions=resubmit(,105)). So next stop is Table 105. 
 
 ### 10.11.9 ConntrackCommit Table #105
 
