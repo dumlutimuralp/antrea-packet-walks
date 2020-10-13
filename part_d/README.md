@@ -31,7 +31,7 @@ The highlighted lines in the above output are the route entries for the pod subn
 - worker1 - 10.222.1.0/24
 - worker2 - 10.222.2.0/24
 
-Looking at "10.222.2.0/24 via 10.222.2.1 dev antrea-gw0 onlink" , this route entry basically means that the next hop for the subnet 10.222.2.0/24 is 10.222.2.1 and it can be reached through antrea-gw0 interface. (dev antrea-gw0) However 10.222.2.1 is not part of a directly connected subnet on worker1 node. So normally it would perform recursive routing to check how it can reach 10.222.2.1. The interesting trick here is "onlink", this instructs the Linux Kernel IP stack to think as if 10.222.2.1 is a next hop which is directly connected to the network which antrea-gw0 interface is also connected to. Hence when worker1 node sends any data destined to subnet 10.222.2.0/24, it would first send an ARP request for 10.222.2.1.
+Looking at "10.222.2.0/24 via 10.222.2.1 dev antrea-gw0 onlink" , this route entry basically means that the next hop for the subnet 10.222.2.0/24 is 10.222.2.1 and it can be reached through antrea-gw0 interface. (dev antrea-gw0) However 10.222.2.1 is not part of a directly connected subnet on worker1 node. So normally it would perform recursive routing to check how it can reach 10.222.2.1. The interesting trick here is "onlink", this instructs the Linux Kernel IP stack to think as if 10.222.2.1 is a next hop which is directly connected to the network which antrea-gw0 interface is also connected to. **Hence when worker1 node sends any data destined to subnet 10.222.2.0/24, it would first send an ARP request for 10.222.2.1.**
 
 Looking at "10.222.0.0/24 via 10.222.0.1 dev antrea-gw0 onlink" , this route entry is for the pod subnet on master node. 
 
@@ -45,17 +45,16 @@ cookie=0x1020000000000, table=20, priority=200,arp,arp_tpa=10.222.2.1,arp_op=1 a
 
 This flow entry checks if the current flow that comes ingress to OVS is an arp flow (arp), and if the ARP request is sent for IP address 10.222.2.1 (arp_tpa=10.222.2.1, tpa stands for target IP address), and if it is an arp request (arp_op=1 is for arp request). Once all these match with the flow then the following actions are taken on the flow.
 
-* "move:NXM_OF_ETH_SRC[]->NXM_OF_ETH_DST[]" : This action moves the MAC address (seen in the source MAC field of the Ethernet Header) to the destination MAC field in the Ethernet header of the response
-* mod_dl_src:aa:bb:cc:dd:ee:ff : This action puts the mac address "aa:bb:cc:dd:ee:ff" into the source MAC field in the Ethernet header of the response
-* load:0x2->NXM_OF_ARP_OP[] : This action basica
-move:NXM_NX_ARP_SHA[]->NXM_NX_ARP_THA[],
-load:0xaabbccddeeff->NXM_NX_ARP_SHA[],
-move:NXM_OF_ARP_SPA[]->NXM_OF_ARP_TPA[],
-load:0xade0001->NXM_OF_ARP_SPA[],
-IN_PORT
+* "move:NXM_OF_ETH_SRC[]->NXM_OF_ETH_DST[]" : This action moves the MAC address, seen in the source address field of the ethernet header, to the destination address field in the ethernet header of the response
+* mod_dl_src:aa:bb:cc:dd:ee:ff : This action puts the MAC address "aa:bb:cc:dd:ee:ff" into the source address field in the ethernet header of the response
+* load:0x2->NXM_OF_ARP_OP[] : This action basically sets "0x2" which is "2" in decimal for "arp_op" and "arp_op=2" is used for ARP response
+* move:NXM_NX_ARP_SHA[]->NXM_NX_ARP_THA[] : This action moves the MAC address, seen in the sender MAC address field in the ARP header of the ARP request, to the target MAC address field in the ARP header of the response 
+* load:0xaabbccddeeff->NXM_NX_ARP_SHA[] : This action puts the MAC address "aa:bb:cc:dd:ee:ff" into the sender MAC address field in the ARP header of the response
+* move:NXM_OF_ARP_SPA[]->NXM_OF_ARP_TPA[] : This action moves the IP address, seen in the sender IP address field of the ARP header, to the target IP address field in the ARP header of the response 
+* load:0xade0201->NXM_OF_ARP_SPA[] : This action puts the IP address "10.222.2.1" (conversion from hex 0xade0201) into the the sender IP address field of the ARP header of the response 
+* IN_PORT : This action means "forward the flow back to the port where it came" (which is the antrea-gw0 interface port on OVS on the worker1 node in this case)
 
-
-Note : More info about these fields can be found in the "ovs-fields" section on [this page](https://docs.openvswitch.org/en/latest/ref/?highlight=fields#man-pages).
+Note : More detailed info about these fields can be found in the "ovs-fields" section on [this page](https://docs.openvswitch.org/en/latest/ref/?highlight=fields#man-pages).
 
 
 First two flows programmed in this table is to reply to ARP requests sent by Gateway0 for other Gateway IPs (basically other gateway interfaces on other nodes) Why ? Let’ s focus on second flow (10.222.1.1) first.  When a pod on worker 2 communicates to a Kubernetes Service (ClusterIP) then that needs to processed by local kube-proxy process to be load balanced (DNAT) to either a local or remote pod. If kube proxy picks a remote pod as the destination, then worker 2 needs to know how to get to that pod. Remote pod in this test runs on worker 1. Worker 1’ s pod subnet is 10.222.1.0 /24. On worker 2 there is an “on-link” route entry (slide 5) which makes the Kernel IP stack think that 10.222.1.0 is directly connected but the next hop for that route entry is 10.222.1.1. Hence worker 2 has to send an ARP entry for 10.222.1.1 (since it is a directly connected network – “on link”) to access the network 10.222.1.0. The ARP entry has a generic virtual mac aa:bb:cc:dd:ee:ff as the MAC address (instead of real MAC address of the respective Gateway0 interface of the destination node). (slide 5) This is the same on all nodes. This helps on the receiving end. Cause the worker 1 node OVS receives the traffic with this destination MAC and it can deliver the traffic right towards to the destination pod rather than the local Gateway0 interface.
