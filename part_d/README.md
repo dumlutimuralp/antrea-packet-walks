@@ -35,16 +35,10 @@ default via 10.79.1.1 dev ens160 proto static
 172.17.0.0/16 dev docker0 proto kernel scope link src 172.17.0.1 linkdown
 </code></pre>
 
-Looking at "10.222.2.0/24 via 10.222.2.1 dev antrea-gw0 onlink" , this route entry basically means that the next hop for the subnet 10.222.2.0/24 is 10.222.2.1 and it can be reached through antrea-gw0 interface. (dev antrea-gw0) However 10.222.2.1 is not part of any directly connected subnets on worker1 node ? So normally it would perform recursive routing to check how it can reach 10.222.2.1. The interesting trick here is the "onlink" parameter used in the same route entry. This parameter makes the Linux Kernel IP stack to think as if 10.222.2.1 is a next hop which is part of a network that antrea-gw0 interface is also directly connected to. **Hence when worker1 node sends any traffic destined to subnet 10.222.2.0/24, it would first send an ARP request for 10.222.2.1 from its antrea-gw0 interface.** 
-
-
-Which specific scenario would worker1 node send 
-
-Looking at "10.222.0.0/24 via 10.222.0.1 dev antrea-gw0 onlink" , this route entry is for the pod subnet for the other Kubernetes node, which is the master node. 
-
-Whenever a new node is added to the Kubernetes cluster, Antrea Node Controller would detect that by watching the Kubernetes API and then add a route entry, similar to the ones above, on worker1 node' s route table. (Explained [here](https://github.com/vmware-tanzu/antrea/blob/master/docs/architecture.md#antrea-agent))
-
-
+- The third route entry, **"10.222.2.0/24 via 10.222.2.1 dev antrea-gw0 onlink"**, basically means that the next hop for the subnet 10.222.2.0/24 is 10.222.2.1 and it can be reached through antrea-gw0 interface. ("dev antrea-gw0") But 10.222.2.1 is not part of any directly connected subnets on worker1 node ? So worker1 node would normally need to perform recursive routing to check how it can reach 10.222.2.1. The interesting trick here is the "onlink" parameter used in the same route entry. This parameter makes **the Linux Kernel IP stack to think as if 10.222.2.1 is a local next hop** which is part of the network that antrea-gw0 interface is also directly connected to. **Hence when worker1 node sends any traffic destined to subnet 10.222.2.0/24**, it would first send an ARP request for 10.222.2.1 from its antrea-gw0 interface.
+- Which specific traffic pattern would worker1 node send an ARP request ? The simple one that comes to mind is the flow which is explained in Section 9, frontend pod on worker1 node to backend2 pod on worker2 node flow. **Basically, pod to service traffic which gets load balanced to a pod on another node.** Hence these first two flow entries in Table 20 help worker1 node to figure out how to send flows destined to pods running on other Kubernetes nodes.
+- The fifth route entry, "10.222.0.0/24 via 10.222.0.1 dev antrea-gw0 onlink" , is for the pod subnet on the other Kubernetes node, which is the master node. 
+- Whenever a new node is added to the Kubernetes cluster, Antrea Node Controller would detect that by watching the Kubernetes API and then add a route entry, similar to the ones above, on worker1 node' s route table. (Explained [here](https://github.com/vmware-tanzu/antrea/blob/master/docs/architecture.md#antrea-agent))
 
 Until now, the reason a node sends an ARP request for another node' s gw0 interace IP is explained. What about how OVS handles these ARP requests ? For that the second flow entry in Table 20 is explained in more detail below.
 
