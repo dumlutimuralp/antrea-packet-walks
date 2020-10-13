@@ -37,25 +37,25 @@ Looking at "10.222.0.0/24 via 10.222.0.1 dev antrea-gw0 onlink" , this route ent
 
 Similarly whenever a new node is added to the Kubernetes cluster, Antrea Node Controller would detect that by watching the Kubernetes API and add similar route entries on worker1 node' s route table. (Explained [here](https://github.com/vmware-tanzu/antrea/blob/master/docs/architecture.md#antrea-agent))
 
-Until now, the reason a node sends an ARP request for another node' s gw0 interace IP is explained. What about how OVS handles these ARP requests ? For that the second flow entry in Table 20 will be explained in more detail now. 
+Until now, the reason a node sends an ARP request for another node' s gw0 interace IP is explained. What about how OVS handles these ARP requests ? For that the second flow entry in Table 20 is explained in more detail below.
 
+<pre><code>
+cookie=0x1020000000000, table=20, priority=200,arp,arp_tpa=10.222.2.1,arp_op=1 actions=move:NXM_OF_ETH_SRC[]->NXM_OF_ETH_DST[],mod_dl_src:aa:bb:cc:dd:ee:ff,load:0x2->NXM_OF_ARP_OP[],move:NXM_NX_ARP_SHA[]->NXM_NX_ARP_THA[],load:0xaabbccddeeff->NXM_NX_ARP_SHA[],move:NXM_OF_ARP_SPA[]->NXM_OF_ARP_TPA[],load:0xade0201->NXM_OF_ARP_SPA[],IN_PORT
+</code></pre>
 
- cookie=0x1020000000000, table=20, priority=200,arp,arp_tpa=10.222.2.1,arp_op=1 actions=move:NXM_OF_ETH_SRC[]->NXM_OF_ETH_DST[],mod_dl_src:aa:bb:cc:dd:ee:ff,load:0x2->NXM_OF_ARP_OP[],move:NXM_NX_ARP_SHA[]->NXM_NX_ARP_THA[],load:0xaabbccddeeff->NXM_NX_ARP_SHA[],move:NXM_OF_ARP_SPA[]->NXM_OF_ARP_TPA[],load:0xade0201->NXM_OF_ARP_SPA[],IN_PORT
+This flow entry checks if the current flow that comes ingress to OVS is an arp flow (arp), and if the ARP request is sent for IP address 10.222.2.1 (arp_tpa=10.222.2.1, tpa stands for target IP address), and if it is an arp request (arp_op=1 is for arp request). Once all these match with the flow then the following actions are taken on the flow.
 
-
-
-
-arp,arp_tpa=10.222.0.1,arp_op=1 
-
-actions=
-move:NXM_OF_ETH_SRC[]->NXM_OF_ETH_DST[],
-mod_dl_src:aa:bb:cc:dd:ee:ff,
-load:0x2->NXM_OF_ARP_OP[],
+* "move:NXM_OF_ETH_SRC[]->NXM_OF_ETH_DST[]" : This action moves the MAC address (seen in the source MAC field of the Ethernet Header) to the destination MAC field in the Ethernet header of the response
+* mod_dl_src:aa:bb:cc:dd:ee:ff : This action puts the mac address "aa:bb:cc:dd:ee:ff" into the source MAC field in the Ethernet header of the response
+* load:0x2->NXM_OF_ARP_OP[] : This action basica
 move:NXM_NX_ARP_SHA[]->NXM_NX_ARP_THA[],
 load:0xaabbccddeeff->NXM_NX_ARP_SHA[],
 move:NXM_OF_ARP_SPA[]->NXM_OF_ARP_TPA[],
 load:0xade0001->NXM_OF_ARP_SPA[],
 IN_PORT
+
+
+Note : More info about these fields can be found in the "ovs-fields" section on [this page](https://docs.openvswitch.org/en/latest/ref/?highlight=fields#man-pages).
 
 
 First two flows programmed in this table is to reply to ARP requests sent by Gateway0 for other Gateway IPs (basically other gateway interfaces on other nodes) Why ? Let’ s focus on second flow (10.222.1.1) first.  When a pod on worker 2 communicates to a Kubernetes Service (ClusterIP) then that needs to processed by local kube-proxy process to be load balanced (DNAT) to either a local or remote pod. If kube proxy picks a remote pod as the destination, then worker 2 needs to know how to get to that pod. Remote pod in this test runs on worker 1. Worker 1’ s pod subnet is 10.222.1.0 /24. On worker 2 there is an “on-link” route entry (slide 5) which makes the Kernel IP stack think that 10.222.1.0 is directly connected but the next hop for that route entry is 10.222.1.1. Hence worker 2 has to send an ARP entry for 10.222.1.1 (since it is a directly connected network – “on link”) to access the network 10.222.1.0. The ARP entry has a generic virtual mac aa:bb:cc:dd:ee:ff as the MAC address (instead of real MAC address of the respective Gateway0 interface of the destination node). (slide 5) This is the same on all nodes. This helps on the receiving end. Cause the worker 1 node OVS receives the traffic with this destination MAC and it can deliver the traffic right towards to the destination pod rather than the local Gateway0 interface.
