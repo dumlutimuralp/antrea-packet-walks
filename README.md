@@ -14,18 +14,18 @@ _**Special thanks to [Quan Tian](https://github.com/tnqn), [Wenying Dong](https:
 - [2. OVS Pipeline](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_a/README.md#2-ovs-pipeline)
 - [3. Test Environment](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_a/README.md#3-test-environment)
 
-## [PART B - Same node](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_b/README.md)
+## [PART B - Same Node](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_b/README.md)
 
 - [4. Frontend to Service](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_b/README.md#4-frontend-to-service)
 - [5. Service to Backend Pod](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_b/README.md#5-service-to-backend-pod)
 - [6. Backend Pod to Service](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_b/README.md#6-backend-pod-to-service)
 - [7. Service to Frontend](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_b/README.md#7-service-to-frontend)
 
-## [PART C - Different nodes](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_c/README.md)
+## [PART C - Different Nodes](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_c/README.md)
 
 - [8. Frontend to Service](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_c#8-frontend-pod-to-service)
 - [9. Service to Backend Pod](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_c#9-service-to-backend-pod)
 - [10. Backend Pod to Service](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_c#10-backend-pod-to-service)
 - [11. Service to Frontend](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_c#11-service-to-frontend-pod)
 
-## [PART D - ARP, Additional Info](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_d/README.md)
+## [PART D - ARP](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_d/README.md)
