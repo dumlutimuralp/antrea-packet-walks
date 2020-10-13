@@ -16,7 +16,7 @@ vmware@master:~$
 The first flow entry is for the ARP requests sent for the IP address 10.222.0.1 which is **master** node' s antrea-gw0 IP. The second entry is for hthe ARP requests sent for the IP address 10.222.2.1 which is the **worker2** node' s antrea-gw0 IP. Why would worker 1 send ARP requests for other nodes' gw0 interface IPs ? The answer lies in the routing table of the worker 1 node. (which was shown back in [Part A Section 3.1.1](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_a#311-worker-1)) Shown below once again.
 
 <pre><code>
-vmware@<b>worker1</b>:~$ <b>ip route</b>
+vmware@<b>worker1</b>:~$ ip route
 default via 10.79.1.1 dev ens160 proto static
 10.79.1.0/24 dev ens160 proto kernel scope link src 10.79.1.201
 <b>10.222.0.0/24 via 10.222.0.1 dev antrea-gw0 onlink </b>
