@@ -13,7 +13,7 @@ vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ov
 vmware@master:~$ 
 </code></pre>
 
-The first flow entry is for the ARP requests sent for the IP address 10.222.0.1 which is **master** node' s antrea-gw0 IP. The second entry is for hthe ARP requests sent for the IP address 10.222.2.1 which is the **worker2** node' s antrea-gw0 IP. **Why would worker1 node send an ARP request for another node' s gw0 interface IP ?** The answer lies in the routing table of the worker 1 node. (which was shown back in [Part A Section 3.1.1](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_a#311-worker-1)) Shown below once again.
+The first flow entry is for the ARP requests sent for the IP address 10.222.0.1 which is **master** node' s antrea-gw0 IP. The second flow entry is for the ARP requests sent for the IP address 10.222.2.1 which is the **worker2** node' s antrea-gw0 IP. **Why would worker1 node send an ARP request for another node' s gw0 interface IP ?** The answer lies in the routing table of the worker 1 node. (which was shown back in [Part A Section 3.1.1](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_a#311-worker-1)) Shown below once again.
 
 <pre><code>
 vmware@<b>worker1</b>:~$ ip route
