@@ -24,15 +24,18 @@ vmware@master:~$ k exec -it frontend -- sh
 
 This flow comes to OVS on the frontend pod port. Basically this flow is frontend pod accessing the backendsvc service on TCP port 80. Backendsvc service is backed by backend1 and backend2 pods, as shown in kubectl outputs in [Part A Section 3.2](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_a#32-test-application).
 
-**********************************************
-**********************************************
-**********************************************
-TCPDUMP
-**********************************************
-**********************************************
-**********************************************
+While performing "curl" on the frontend pod (as shown previously), use another SSH session to the master node to get tcpdump on the frontend pod, as shown below.
+<pre><code>
+vmware@master:~$ k exec -it frontend -- sh
+/ # tcpdump -en
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on eth0, link-type EN10MB (Ethernet), capture size 262144 bytes
+<b>OUTPUT OMITTED</b>
+11:28:35.995562 <b>be:2c:bf:e4:ec:c5 > 4e:99:08:c1:53:be</b>, ethertype IPv4 (0x0800), length 74: <b>10.222.1.48.54444 > 10.104.65.133.80</b>: Flags [S], seq 486483242, win 64860, options [mss 1410,sackOK,TS val 782534940 ecr 0,nop,wscale 7], length 0
+<b>OUTPUT OMITTED</b>
+</code></pre>
 
-At this stage, the current flow has the following values in the Ethernet and IP headers.
+As seen above, in the highlighted line of the tcpdump output, the flow has the following values in the Ethernet and IP headers.
 
 - Source IP = 10.222.1.48 (Frontend pod IP)
 - Destination IP = 10.104.65.133 (Backendsvc service IP)
