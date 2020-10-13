@@ -1085,7 +1085,7 @@ The current flow' s source and destination MAC and IP address values are still a
 - Source MAC = f2:32:d8:07:e2:a6 (backend1 Pod MAC)
 - Destination MAC =  4e:99:08:c1:53:be (antrea-gw0 MAC on Worker 1) (destination MAC was be:2c:bf:e4:ec:c5 at the beginning of this section but it got rewritten to the antrea-gw0 MAC on Worker 1 node, back in Section 6.4)
 
-Based on the current flow' s source and destination IP/MAC values, the current flow matches the last flow entry in Table 70 (since the prior flow entries match against a different destination MAC). The destination IP and MAC is local to Worker 1 node and clearly there is no routing or L3 forwarding needed. The action in the last flow entry is "resubmit(,80)" which basically hands over the flow to Table 80. Hence next stop is Table 80.
+Based on the current flow' s source and destination IP/MAC values, the current flow matches the last flow entry in Table 70 (since the prior flow entries match against a different destination MAC). The action in the last flow entry is "resubmit(,80)" which basically hands over the flow to Table 80. Hence next stop is Table 80.
 
 **Note :** The first five flow entries in this table are related to ARP processing (with "dl_dst=aa:bb:cc:dd:ee:ff") and will be explained in [Part D Section 12](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_d). The sixth and seventh flow entries in this table are for inter node flow patterns and it will be explained in Part C Section 9.
 
@@ -1115,7 +1115,7 @@ The current flow matches the first flow entry in (since the flow' s destination 
 
 - set the reg1 register to Hex : 0x2. 0x2 in hexadecimal corresponds to [2 x (16 to the power of 0)] = 2. And "2" is the OF port id of antrea-gw0 interface on the OVS. (which can be verified in [Part A Section 3.4](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_a#34-identifying-ovs-port-ids-of-port-ids) Worker 1 output)
 - set the reg0[16] register to "1" (Hex : 0x1)  
-- hand over the flow to Table 90 by "resubmit(,90)"
+- hand the flow over to Table 90 by "resubmit(,90)"
 
 Hence next stop is Table 90.
 
@@ -1403,7 +1403,7 @@ This flow will be matched against a flow entry in each OVS Table, processed top 
 
 ## 7.1 Classifier Table #0
 
-Table #0 on Worker 1 node is shown below. (again, just like as in Section 3.5.1) 
+Table #0 on Worker 1 node is shown below.  
 
 <pre><code>
 vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ovs -- ovs-ofctl dump-flows br-int table=0 --no-stats
@@ -1495,7 +1495,7 @@ This table in essence checks whether if the flow is destined to a Kubernetes ser
 
 The table has only two flow entries. The first flow entry checks whether if the destination IP of the flow is part of the service CIDR range configured in the cluster (which is 10.96.0.0/12); if it does, then certain actions are taken on the flow to steer the flow to the antrea-gw0 interface on the node.  
 
-The destination IP of the current flow is frontend pod IP (10.222.1.48) and it does not fall into the service CIDR range in the first flow entry in Table 40. Hence it matches the second/last flow entry. That flow entry basically hands the over to Table 50 (actions=resubmit(,50)) . So next stop is Table 50.
+The destination IP of the current flow is frontend pod IP (10.222.1.48) and it does not fall into the service CIDR range in the first flow entry in Table 40. Hence the current flow matches the second/last flow entry. That flow entry basically hands the flow over to Table 50 (actions=resubmit(,50)) . So next stop is Table 50.
 
 **Note :** In the OVS Pipeline diagram [here](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_a/README.md#2-ovs-pipeline), there are tables 45-49 before Table50. However those tables are in use only when Antrea Network Policy feature of Antrea is used. In this Antrea environment, it is not used. 
 
@@ -1550,7 +1550,7 @@ The current flow' s source and destination MAC and IP address values are as foll
 - Source MAC = 4e:99:08:c1:53:be (antrea-gw0 interface MAC on Worker 1)
 - Destination MAC = be:2c:bf:e4:ec:c5 (frontend pod MAC)
 
-Based on the current flow' s source and destination MAC/IP values, the current flow matches the last flow entry in Table 70 (since the prior flow entries match against a different destination MAC). The destination IP and MAC is local to Worker 1 node and clearly there is no routing or L3 forwarding needed. The action in the last flow entry is "resubmit(,80)" which basically hands the flow over to Table 80. Hence next stop is Table 80.
+Based on the current flow' s source and destination MAC/IP values, the current flow matches the last flow entry in Table 70 (since the prior flow entries match against a different destination MAC). The action in the last flow entry is "resubmit(,80)" which basically hands the flow over to Table 80. Hence next stop is Table 80.
 
 **Note :** The first five flow entries in this table are related to ARP processing (with "dl_dst=aa:bb:cc:dd:ee:ff") and will be explained in [Part D Section 12](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_d). The sixth and seventh flow entries in this table are for inter node flow patterns and it will be explained in Part C Section 9.
 
@@ -1576,7 +1576,7 @@ Each flow entry in this table sets two registers, both of which mentioned in ear
 - Reg1 is used to store OF port ID of the flow (the OVS port which the flow should be sent to). This register is set with the respective OF port ID based on the destination MAC address of the flow. This register which stores the OF port ID will be used later on in Table 110 (L2ForwardingOut Table).
 - Reg0[16] is used and it is set to "1" to indicate that the given flow has a matching destination address in this table, which is known to OVS, and it should be forwarded. 
 
-As seen in the highlighted flow entry above in the table, the current flow has a destination MAC address of be:2c:bf:e4:ec:c5 (the MAC address of frontend pod) hence it matches the **fifth** flow entry in the table. The actions specified in the fifth flow entry are as following : 
+The current flow has a destination MAC address of be:2c:bf:e4:ec:c5 (the MAC address of frontend pod) hence it matches the **fifth** flow entry in the table. The actions specified in the fifth flow entry are as following : 
 
 - set the reg1 register to "0x31".  0x31 in hexadecimal corresponds to [3 x (16 to the power of 1) + 1 x (16 to the power of 0)] = 49. And "49" is the OF port id of frontend pod on the OVS. (which can be verified in [Part A Section 3.4](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_a#34-identifying-ovs-port-ids-of-port-ids) Worker 1 output) 
 - set the reg0[16] register to "1" (Hex : 0x1)  
@@ -1594,14 +1594,14 @@ The Table 90 on Worker 1 node is shown below.
 
 <pre><code>
 vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ovs -- ovs-ofctl dump-flows br-int table=90 --no-stats
- cookie=0x1000000000000, table=90, priority=210,ct_state=-new+est,ip actions=resubmit(,105)
+ <b>cookie=0x1000000000000, table=90, priority=210,ct_state=-new+est,ip actions=resubmit(,105)</b>
  cookie=0x1000000000000, table=90, priority=210,ip,nw_src=10.222.1.1 actions=resubmit(,105)
- <b>cookie=0x1050000000000, table=90, priority=200,ip,nw_src=10.222.1.48 actions=conjunction(3,1/3)</b>
- <b>cookie=0x1050000000000, table=90, priority=200,tcp,tp_dst=80 actions=conjunction(4,3/3),conjunction(3,3/3)</b>
- <b>cookie=0x1050000000000, table=90, priority=200,ip,reg1=0x30 actions=conjunction(3,2/3)</b>
+ cookie=0x1050000000000, table=90, priority=200,ip,nw_src=10.222.1.48 actions=conjunction(3,1/3)
+ cookie=0x1050000000000, table=90, priority=200,tcp,tp_dst=80 actions=conjunction(4,3/3),conjunction(3,3/3)
+ cookie=0x1050000000000, table=90, priority=200,ip,reg1=0x30 actions=conjunction(3,2/3)
  cookie=0x1050000000000, table=90, priority=200,ip,reg1=0x31 actions=conjunction(4,2/3)
  cookie=0x1050000000000, table=90, priority=200,ip actions=conjunction(4,1/3)
- <b>cookie=0x1050000000000, table=90, priority=190,conj_id=3,ip actions=load:0x3->NXM_NX_REG6[],resubmit(,105)</b>
+ cookie=0x1050000000000, table=90, priority=190,conj_id=3,ip actions=load:0x3->NXM_NX_REG6[],resubmit(,105)
  cookie=0x1050000000000, table=90, priority=190,conj_id=4,ip actions=load:0x4->NXM_NX_REG6[],resubmit(,105)
  cookie=0x1000000000000, table=90, priority=0 actions=resubmit(,100)
 vmware@master:~$ 
@@ -1621,7 +1621,7 @@ Table 105 on Worker 1 node is shown below.
 vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ovs -- ovs-ofctl dump-flows br-int table=105 --no-stats
  cookie=0x1000000000000, table=105, priority=200,ct_state=+new+trk,ip,reg0=0x1/0xffff actions=ct(commit,table=110,zone=65520,exec(load:0x20->NXM_NX_CT_MARK[]))
  cookie=0x1000000000000, table=105, priority=190,ct_state=+new+trk,ip actions=ct(commit,table=110,zone=65520)
- cookie=0x1000000000000, table=105, priority=0 actions=resubmit(,110)
+ <b>cookie=0x1000000000000, table=105, priority=0 actions=resubmit(,110)</b>
 vmware@master:~$ 
 </code></pre>
 
@@ -1631,7 +1631,7 @@ The first flow entry checks whether if the flow is a new flow (+new) and if it i
 
 The second flow entry checks whether if the flow is a new flow (+new) and if it is a tracked flow (+trk).
 
-The current flow does **not** match the first nor the second flow entry in this table. It is an already established flow hence the current flow will match the last entry in this table. The action in the last flow entry is specified as "resubmit(,110)" which basically hands the flow over to the Table 110. So next stop is Table 110.
+The current flow does **not** match the first nor the second flow entry in this table. It is an already established flow hence the current flow will match the **last entry** in this table. The action in the last flow entry is specified as "resubmit(,110)" which basically hands the flow over to the Table 110. So next stop is Table 110.
 
 ## 7.11 L2ForwardingOut Table #110
 
@@ -1646,7 +1646,7 @@ vmware@master:~$
 
 This table' s job is simple. First flow entry in this table first reads the value in register reg0[16]. If the value of this register is "1" in decimal, that means the destination MAC address is known to OVS and the flow should be able to get forwarded (otherwise it would get dropped). The same flow entry has an action defined as "actions=output:NXM_NX_REG1[]". What this action does is it reads the value in "NXM_NX_REG1" to determine the OF port this flow will be sent through and then sends the flow onwards to that port.
 
-The value of REG0[16] was set to "0x1" back in L2ForwardingCalc Table #80. The value of REG1 was set to "0x31" (which is "49" in decimal) also back in L2ForwardingCalc Table #80. "49" is the OF Port ID of frontend pod interface. Hence the OVS sends this flow onwards to the frontend pod. **At this stage frontend pod successfully receives the response from backendsvc. And the flow is completed**
+The value of REG0[16] was set to "0x1" back in L2ForwardingCalc Table #80. The value of REG1 was set to "0x31" (which is "49" in decimal) also back in L2ForwardingCalc Table #80. "49" is the OF Port ID of frontend pod interface. Hence the OVS sends this flow onwards to the frontend pod. **At this stage frontend pod successfully receives the response from backendsvc.**
 
 **Note :** The second flow entry in this table obviously drops all the other flows which do not have their "reg0[16]" register set.
 
