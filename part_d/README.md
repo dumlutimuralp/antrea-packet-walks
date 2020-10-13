@@ -13,11 +13,17 @@ vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ov
 vmware@master:~$ 
 </code></pre>
 
-The first flow entry is for the ARP requests sent for the IP address 10.222.0.1 which is **master** node' s antrea-gw0 IP. 
+The first flow entry is to process the ARP request flows sent for the IP address 10.222.0.1 which is **master** node' s antrea-gw0 IP. 
 
-The second flow entry is for the ARP requests sent for the IP address 10.222.2.1 which is the **worker2** node' s antrea-gw0 IP. 
+The second flow entry is to process the ARP request flows sent for the IP address 10.222.2.1 which is the **worker2** node' s antrea-gw0 IP. 
 
-**Why would worker1 node send an ARP request for another node' s gw0 interface IP ?** The answer lies in the routing table of the worker 1 node. (which was shown back in [Part A Section 3.1.1](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_a#311-worker-1)) Shown below once again.
+**But why would OVS on worker1 node need to process ARP request flows for other Kubernetes nodes' gw0 interface IPs ?** Isnt each node' s gw0 interface in its unique subnet ? To remind again, the pod subnets assigned by node ipam controller to each individual Kubernetes node in this Kubernetes cluster are as following : 
+
+- master - 10.222.0.0/24
+- worker1 - 10.222.1.0/24
+- worker2 - 10.222.2.0/24
+
+The answer to the above question lies in the routing table of the worker 1 node. (which was shown back in [Part A Section 3.1.1](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_a#311-worker-1)) Shown below once again. The highlighted lines in the output are the route entries for the pod subnets of the **other** Kubernetes nodes; to be precise worker2 and master nodes. 
 
 <pre><code>
 vmware@<b>worker1</b>:~$ ip route
@@ -29,17 +35,16 @@ default via 10.79.1.1 dev ens160 proto static
 172.17.0.0/16 dev docker0 proto kernel scope link src 172.17.0.1 linkdown
 </code></pre>
 
-The highlighted lines in the above output are the route entries for the pod subnets of the **other** nodes. To remind again, the pod subnets assigned by node ipam controller to each individual Kubernetes node in this Kubernetes cluster is as following : 
+Looking at "10.222.2.0/24 via 10.222.2.1 dev antrea-gw0 onlink" , this route entry basically means that the next hop for the subnet 10.222.2.0/24 is 10.222.2.1 and it can be reached through antrea-gw0 interface. (dev antrea-gw0) However 10.222.2.1 is not part of any directly connected subnets on worker1 node ? So normally it would perform recursive routing to check how it can reach 10.222.2.1. The interesting trick here is the "onlink" parameter used in the same route entry. This parameter makes the Linux Kernel IP stack to think as if 10.222.2.1 is a next hop which is part of a network that antrea-gw0 interface is also directly connected to. **Hence when worker1 node sends any traffic destined to subnet 10.222.2.0/24, it would first send an ARP request for 10.222.2.1 from its antrea-gw0 interface.** 
 
-- master - 10.222.0.0/24
-- worker1 - 10.222.1.0/24
-- worker2 - 10.222.2.0/24
 
-Looking at "10.222.2.0/24 via 10.222.2.1 dev antrea-gw0 onlink" , this route entry basically means that the next hop for the subnet 10.222.2.0/24 is 10.222.2.1 and it can be reached through antrea-gw0 interface. (dev antrea-gw0) However 10.222.2.1 is not part of a directly connected subnet on worker1 node. So normally it would perform recursive routing to check how it can reach 10.222.2.1. The interesting trick here is "onlink", this instructs the Linux Kernel IP stack to think as if 10.222.2.1 is a next hop which is directly connected to the network which antrea-gw0 interface is also connected to. **Hence when worker1 node sends any data destined to subnet 10.222.2.0/24, it would first send an ARP request for 10.222.2.1.**
+Which specific scenario would worker1 node send 
 
-Looking at "10.222.0.0/24 via 10.222.0.1 dev antrea-gw0 onlink" , this route entry is for the pod subnet on master node. 
+Looking at "10.222.0.0/24 via 10.222.0.1 dev antrea-gw0 onlink" , this route entry is for the pod subnet for the other Kubernetes node, which is the master node. 
 
-Similarly whenever a new node is added to the Kubernetes cluster, Antrea Node Controller would detect that by watching the Kubernetes API and add similar route entries on worker1 node' s route table. (Explained [here](https://github.com/vmware-tanzu/antrea/blob/master/docs/architecture.md#antrea-agent))
+Whenever a new node is added to the Kubernetes cluster, Antrea Node Controller would detect that by watching the Kubernetes API and then add a route entry, similar to the ones above, on worker1 node' s route table. (Explained [here](https://github.com/vmware-tanzu/antrea/blob/master/docs/architecture.md#antrea-agent))
+
+
 
 Until now, the reason a node sends an ARP request for another node' s gw0 interace IP is explained. What about how OVS handles these ARP requests ? For that the second flow entry in Table 20 is explained in more detail below.
 
