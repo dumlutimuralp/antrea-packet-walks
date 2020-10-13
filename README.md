@@ -21,7 +21,7 @@ _**Special thanks to [Quan Tian](https://github.com/tnqn), [Wenying Dong](https:
 - [6. Backend Pod to Service](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_b/README.md#6-backend-pod-to-service)
 - [7. Service to Frontend](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_b/README.md#7-service-to-frontend)
 
-## [PART C - Across nodes](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_c/README.md)
+## [PART C - Different nodes](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_c/README.md)
 
 - [8. Frontend to Service](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_c#8-frontend-pod-to-service)
 - [9. Service to Backend Pod](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_c#9-service-to-backend-pod)
