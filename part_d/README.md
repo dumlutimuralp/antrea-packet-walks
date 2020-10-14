@@ -46,13 +46,13 @@ vmware@master:~$
 - The third flow entry is to process all the remaining ARP requests as a generic Layer 2 switch (actions=normal). (Reminder that an ARP request is a Layer 2 broadcast)
 - The fourth flow entry simply drops all the other type of traffic.
 
-**But why would OVS on a node receive ARP requests for other Kubernetes nodes' gw0 interface IPs ?** Isnt each node' s gw0 interface in its unique subnet ? To remind again, the pod subnets assigned by node ipam controller to each individual Kubernetes node in this Kubernetes cluster are as following : 
+**Why would OVS receive ARP requests for other Kubernetes nodes' gw0 interface IPs ?** Isnt each node' s gw0 interface in its unique subnet ? To remind again, the pod subnets assigned by node ipam controller to each individual Kubernetes node in this Kubernetes cluster are as following : 
 
 - master - 10.222.0.0/24
 - worker1 - 10.222.1.0/24
 - worker2 - 10.222.2.0/24
 
-The answer to the above question lies in the routing table of the worker1 node. (which was shown back in [Part A Section 3.1.1](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_a#311-worker-1)) Shown below again. The highlighted lines in the output are the route entries for the pod subnets of the **other** Kubernetes nodes; to be precise worker2 and master. 
+The answer to the above question lies in the route table of the nodes. For instance worker1 node' s route table is shown below. (which was also shown back in [Part A Section 3.1.1](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_a#311-worker-1)). The highlighted lines below are the route entries for the pod subnets of the **other** Kubernetes nodes; to be precise worker2 and master. 
 
 <pre><code>
 vmware@<b>worker1</b>:~$ ip route
@@ -74,7 +74,7 @@ The fifth route entry, "10.222.0.0/24 via 10.222.0.1 dev antrea-gw0 onlink", is 
 
 Whenever a new node is added to the Kubernetes cluster, Antrea Node Controller would detect that by watching the Kubernetes API and then add a route entry, similar to the ones above, on worker1 node' s route table. (Explained [here](https://github.com/vmware-tanzu/antrea/blob/master/docs/architecture.md#antrea-agent))
 
-Until now, the reason why a node would send an ARP request for another node' s gw0 interface IP is explained above. **What about OVS ? How does it handle these ARP requests ?** For that the second flow entry in Table 20 is explained in more detail below.
+Until now, the reason why a node would send an ARP request for another node' s gw0 interface IP is explained above. **What about OVS ? How does it handle these ARP requests ?** For that, focusing on the Table 20 again, the second flow entry is explained in more detail now, as below.
 
 <pre><code>
 cookie=0x1020000000000, table=20, priority=200,arp,arp_tpa=10.222.2.1,arp_op=1 actions=move:NXM_OF_ETH_SRC[]->NXM_OF_ETH_DST[],mod_dl_src:aa:bb:cc:dd:ee:ff,load:0x2->NXM_OF_ARP_OP[],move:NXM_NX_ARP_SHA[]->NXM_NX_ARP_THA[],load:0xaabbccddeeff->NXM_NX_ARP_SHA[],move:NXM_OF_ARP_SPA[]->NXM_OF_ARP_TPA[],load:0xade0201->NXM_OF_ARP_SPA[],IN_PORT
