@@ -1,6 +1,6 @@
 # PART D
 
-This section explains how Address Resolution Protocol (ARP) flows are handled by OVS. It also clarifies for what reason MAC address "aa:bb:cc:dd:ee:ff" is used in various tables by OVS in the previous sections.
+This section explains how Address Resolution Protocol (ARP) flows are handled by OVS. It also clarifies how MAC address "aa:bb:cc:dd:ee:ff" is used in various tables by OVS in the previous sections.
 
 The related part in the OVS pipeline diagram (below) shows the steps related to ARP flows. 
 
@@ -26,7 +26,7 @@ vmware@master:~$
 
 Highlighted flow entries in the output above prove that if the flow is an ARP flow and also if the source IP/MAC in the ARP header matches the endpoint which is connected to that OVS port, then the flow gets handed over to Table 20, which is the ArpResponder table.
 
-**Note :** SPA acroynm in "arp_spa" stands for source IP address and SHA acronym in "arp_sha" stands for source hardware address (MAC). More detailed info about these acronyms can be found in the "ovs-fields" section on [this page](https://docs.openvswitch.org/en/latest/ref/?highlight=fields#man-pages).
+**Note :** SPA in "arp_spa" stands for source IP address and SHA in "arp_sha" stands for source hardware address (MAC). More detailed info about these acronyms can be found in the "ovs-fields" section on [this page](https://docs.openvswitch.org/en/latest/ref/?highlight=fields#man-pages).
 
 # 12. ArpResponder Table #20
 
@@ -51,7 +51,7 @@ The second flow entry is to process the ARP request flows (arp_op=1) sent for th
 - worker1 - 10.222.1.0/24
 - worker2 - 10.222.2.0/24
 
-The answer to the above question lies in the routing table of the worker 1 node. (which was shown back in [Part A Section 3.1.1](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_a#311-worker-1)) Shown below once again. The highlighted lines in the output are the route entries for the pod subnets of the **other** Kubernetes nodes; to be precise worker2 and master nodes. 
+The answer to the above question lies in the routing table of the worker1 node. (which was shown back in [Part A Section 3.1.1](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_a#311-worker-1)) Shown below again. The highlighted lines in the output are the route entries for the pod subnets of the **other** Kubernetes nodes; to be precise worker2 and master. 
 
 <pre><code>
 vmware@<b>worker1</b>:~$ ip route
@@ -63,7 +63,7 @@ default via 10.79.1.1 dev ens160 proto static
 172.17.0.0/16 dev docker0 proto kernel scope link src 172.17.0.1 linkdown
 </code></pre>
 
-The third route entry, **"10.222.2.0/24 via 10.222.2.1 dev antrea-gw0 onlink"**, basically means that the next hop for the subnet 10.222.2.0/24 is 10.222.2.1 and it can be reached through antrea-gw0 interface. ("dev antrea-gw0") But 10.222.2.1 is not part of any directly connected subnets on worker1 node ? So worker1 node would normally need to perform recursive routing to check how it can reach 10.222.2.1. The interesting trick here is the "onlink" parameter used in the same route entry. This parameter makes **the Linux Kernel IP stack to think as if 10.222.2.1 is a local next hop** which is part of the network that antrea-gw0 interface is also directly connected to. **Hence when worker1 node sends any traffic destined to subnet 10.222.2.0/24**, it would first send an ARP request for 10.222.2.1 from its antrea-gw0 interface.
+The third route entry, "10.222.2.0/24 via 10.222.2.1 dev antrea-gw0 onlink", basically means that the subnet 10.222.2.0/24 is reachable through antrea-gw0 interface via next hop 10.222.2.1. But 10.222.2.1 is not part of any directly connected subnets on worker1 node ? So worker1 node would normally need to perform recursive routing to check how it can reach 10.222.2.1. The interesting trick here is the "onlink" parameter used in the same route entry. This parameter makes the Linux Kernel IP stack to think as if 10.222.2.1 is a local next hop which is part of the network that antrea-gw0 interface is also directly connected to. Hence when worker1 node sends any traffic destined to subnet 10.222.2.0/24, it would first send an ARP request for 10.222.2.1 from its antrea-gw0 interface.
 
 Which traffic pattern would require worker1 node to send an ARP request ? The simple one that comes to mind is the flow which is explained in Section 9, frontend pod on worker1 node to backend2 pod on worker2 node flow. Shown below. **Basically, pod to service traffic which gets load balanced to a pod on another node.** 
 
