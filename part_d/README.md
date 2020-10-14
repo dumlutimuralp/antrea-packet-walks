@@ -64,7 +64,7 @@ default via 10.79.1.1 dev ens160 proto static
 172.17.0.0/16 dev docker0 proto kernel scope link src 172.17.0.1 linkdown
 </code></pre>
 
-The third route entry, "10.222.2.0/24 via 10.222.2.1 dev antrea-gw0 onlink", basically means that the subnet 10.222.2.0/24 is reachable through antrea-gw0 interface via next hop 10.222.2.1. But 10.222.2.1 is **not part of** any directly connected subnets on worker1 node ? So worker1 node would normally need to perform recursive lookup to figure how it can reach 10.222.2.1. Here, the "onlink" parameter used in the same route entry comes to rescue. This parameter makes the Linux Kernel IP stack to think as if 10.222.2.1 is a local next hop which is part of the network that antrea-gw0 interface is also directly connected to. Hence when worker1 node sends any traffic destined to subnet 10.222.2.0/24, it would first send an ARP request for 10.222.2.1 from its antrea-gw0 interface.
+The third route entry, "10.222.2.0/24 via 10.222.2.1 dev antrea-gw0 onlink", basically means that the subnet 10.222.2.0/24 is reachable through antrea-gw0 interface via next hop 10.222.2.1. But 10.222.2.1 is **not part of** any directly connected subnets on worker1 node ? So worker1 node would normally need to perform recursive route lookup to figure how it can reach 10.222.2.1. The "onlink" parameter used in the same route entry does the trick. This parameter makes the Linux Kernel IP stack to think as if 10.222.2.1 is a local next hop which is part of the network that antrea-gw0 interface is also directly connected to. Hence when worker1 node sends any traffic destined to subnet 10.222.2.0/24, it would first send an ARP request for 10.222.2.1 from its antrea-gw0 interface.
 
 **Which traffic pattern would require worker1 node to send an ARP request ?** The easiest one that comes to mind is the flow which is explained in Section 9. In that section kube-proxy managed iptables applied DNAT to the flow from frontend pod to backendsvc service. The traffic pattern was from frontend pod on worker1 node to backend2 pod on worker2 node. Shown below.
 
@@ -82,11 +82,11 @@ Until now, the reason why a node would send an ARP request for another node' s g
 cookie=0x1020000000000, table=20, priority=200,arp,arp_tpa=10.222.2.1,arp_op=1 actions=move:NXM_OF_ETH_SRC[]->NXM_OF_ETH_DST[],mod_dl_src:aa:bb:cc:dd:ee:ff,load:0x2->NXM_OF_ARP_OP[],move:NXM_NX_ARP_SHA[]->NXM_NX_ARP_THA[],load:0xaabbccddeeff->NXM_NX_ARP_SHA[],move:NXM_OF_ARP_SPA[]->NXM_OF_ARP_TPA[],load:0xade0201->NXM_OF_ARP_SPA[],IN_PORT
 </code></pre>
 
-This flow entry checks the following conditions :  
+This flow entry checks the following conditions in the flow :  
 
-- if the current flow that comes ingress to OVS is an arp flow (arp)
-- and if the ARP request is sent for IP address 10.222.2.1 (arp_tpa=10.222.2.1, tpa stands for target IP address)
-- and if it is an arp request (arp_op=1 is for arp request). 
+- if it is an ARP flow (arp)
+- and if it is an ARP request (arp_op=1 is for arp request)
+- and if the IP address the ARP is sent for is 10.222.2.1 (arp_tpa=10.222.2.1, tpa stands for target IP address)
 
 Once all of the above matches then the same flow entry takes the following actions on the flow : 
 
@@ -97,18 +97,14 @@ Once all of the above matches then the same flow entry takes the following actio
 * load:0xaabbccddeeff->NXM_NX_ARP_SHA[] : This action puts the MAC address "aa:bb:cc:dd:ee:ff" into the sender MAC address field in the ARP header of the response
 * move:NXM_OF_ARP_SPA[]->NXM_OF_ARP_TPA[] : This action moves the IP address, seen in the sender IP address field of the ARP header, to the target IP address field in the ARP header of the response 
 * load:0xade0201->NXM_OF_ARP_SPA[] : This action puts the IP address "10.222.2.1" (conversion from hex 0xade0201) into the the sender IP address field of the ARP header of the response 
-* IN_PORT : This action means "forward the flow back to the port where it came" (which is the antrea-gw0 interface port on OVS on the worker1 node in this case)
+* IN_PORT : This action means "forward the flow back to the port where it came from" (In this case it is the antrea-gw0 interface port on OVS on the worker1 node)
 
 Note : More detailed info about these fields can be found in the "ovs-fields" section on [this page](https://docs.openvswitch.org/en/latest/ref/?highlight=fields#man-pages).
 
-There is optimum ARP traffic behaviour involved in this implementation and that is the MAC address "aa:bb:cc:dd:ee:ff". Because this MAC address is a virtual MAC address which is globally used across all the nodes in the Kubernetes cluster by Antrea.
-
-At this stage, it should be quite clear that this flow entry would be used exactly when worker1 node needs to send traffic to a pod running on another node. As in the example explained earlier, worker1 node sending traffic to backend2 pod on worker2 node. 
-
-A quick tcpdump on antrea-gw0 interface on the worker1 node would reveal the contents of the ARP request (from antrea-gw0 interface) and ARP response (from OVS itself). 
+A tcpdump on antrea-gw0 interface on the worker1 node can quickly prove the above points. Especially about the ARP request (from antrea-gw0 interface) and ARP reply (from OVS itself). Shown below.
 
 <pre><code>
-vmware@master:~$ kubectl exec -it frontend -- sh
+vmware@<b>master</b>:~$ kubectl exec -it frontend -- sh
 / # curl backendsvc
 Praqma Network MultiTool (with NGINX) - backend2 - 10.222.2.34/24
 </code></pre>
@@ -116,7 +112,7 @@ Praqma Network MultiTool (with NGINX) - backend2 - 10.222.2.34/24
 While performing "curl" on the frontend pod (as shown previously), use another SSH session to the worker1 node to get tcpdump on the antrea-gw0 interface, as shown below.
 
 <pre><code>
-vmware@worker1:~$ sudo tcpdump -en -i antrea-gw0 arp
+vmware@<b>worker1</b>:~$ sudo tcpdump -en -i antrea-gw0 arp
 [sudo] password for vmware: 
 tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
 listening on antrea-gw0, link-type EN10MB (Ethernet), capture size 262144 bytes
@@ -126,9 +122,11 @@ listening on antrea-gw0, link-type EN10MB (Ethernet), capture size 262144 bytes
 <b>OUTPUT OMITTED</b>
 </code></pre>
 
-As shown above, the ARP request for 10.222.2.1 is responded by OVS with a MAC of "aa:bb:cc:dd:ee:ff". 
+As shown above, the ARP request (from antrea-gw0 interface) for 10.222.2.1 is responded by OVS with a MAC of "aa:bb:cc:dd:ee:ff". 
 
-Based on all the above information, looking back at the frontend pod on worker1 to backend2 pod on worker2 flow, when the flow comes to the OVS on worker2 node, Table 70 on worker2 is actually checking the MAC "aa:bb:cc:dd:ee:ff". To review that specific step, Section 9.11.6 can be revisited again. 
+There is optimum ARP traffic behaviour involved in this implementation and that is the MAC address "aa:bb:cc:dd:ee:ff". Because this MAC address is a virtual MAC address which is globally used across all the nodes in the Kubernetes cluster by Antrea. When the local gateway interface on a given node sends an ARP request for the gateway of any of the other nodes, that ARP request will **never be sent** to all the other nodes. OVS just responds with an ARP response with the global virtual MAC.
+
+Based on all the above information, looking back at the frontend pod on worker1 to backend2 pod on worker2 flow, when the flow comes to the OVS on worker2 node, Table 70 on worker2 actually checks the MAC "aa:bb:cc:dd:ee:ff" (alongside the backend2 pod IP). To review that specific step, Section 9.11.6 can be revisited again. 
 
 **To summarize the flow entries in Table 20 on worker1 node: ** 
 
