@@ -1,6 +1,6 @@
 # PART D
 
-This section explains how Address Resolution Protocol (ARP) flows are handled by OVS. It also clarifies how MAC address "aa:bb:cc:dd:ee:ff" is used in various tables by OVS in the previous sections.
+This section explains how Address Resolution Protocol (ARP) flows are handled by OVS. It also solves the mystery of the MAC address "aa:bb:cc:dd:ee:ff" shown in the previous sections.
 
 The related part in the OVS pipeline diagram (below) shows the steps related to ARP flows. 
 
@@ -105,5 +105,45 @@ There is optimum ARP traffic behaviour involved in this implementation and that 
 
 At this stage, it should be quite clear that this flow entry would be used exactly when worker1 node needs to send traffic to a pod running on another node. As in the example explained earlier, worker1 node sending traffic to backend2 pod on worker2 node. 
 
-A quick tcpdump on antrea-gw0 interface on the worker1 node wou
+A quick tcpdump on antrea-gw0 interface on the worker1 node would reveal the contents of the ARP request (from antrea-gw0 interface) and ARP response (from OVS itself). 
+
+<pre><code>
+vmware@master:~$ kubectl exec -it frontend -- sh
+/ # curl backendsvc
+Praqma Network MultiTool (with NGINX) - backend2 - 10.222.2.34/24
+</code></pre>
+
+While performing "curl" on the frontend pod (as shown previously), use another SSH session to the worker1 node to get tcpdump on the antrea-gw0 interface, as shown below.
+
+<pre><code>
+vmware@worker1:~$ sudo tcpdump -en -i antrea-gw0 arp
+[sudo] password for vmware: 
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on antrea-gw0, link-type EN10MB (Ethernet), capture size 262144 bytes
+<b>OUTPUT OMITTED</b>
+12:43:26.485108 4e:99:08:c1:53:be > aa:bb:cc:dd:ee:ff, ethertype ARP (0x0806), length 42: Request who-has 10.222.2.1 tell 10.222.1.1, length 28
+12:43:26.485648 aa:bb:cc:dd:ee:ff > 4e:99:08:c1:53:be, ethertype ARP (0x0806), length 42: Reply 10.222.2.1 is-at aa:bb:cc:dd:ee:ff, length 28
+<b>OUTPUT OMITTED</b>
+</code></pre>
+
+As shown above, the ARP request for 10.222.2.1 is responded by OVS with a MAC of "aa:bb:cc:dd:ee:ff". 
+
+Based on all the above information, looking back at the frontend pod on worker1 to backend2 pod on worker2 flow, when the flow comes to the OVS on worker2 node, Table 70 on worker2 is actually checking the MAC "aa:bb:cc:dd:ee:ff". To review that specific step, Section 9.11.6 can be revisited again. 
+
+**To summarize the flow entries in Table 20 on worker1 node: ** 
+
+<pre><code>
+vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ovs -- ovs-ofctl dump-flows br-int table=20 --no-stats
+ cookie=0x1020000000000, table=20, priority=200,arp,arp_tpa=10.222.0.1,arp_op=1 actions=move:NXM_OF_ETH_SRC[]->NXM_OF_ETH_DST[],mod_dl_src:aa:bb:cc:dd:ee:ff,load:0x2->NXM_OF_ARP_OP[],move:NXM_NX_ARP_SHA[]->NXM_NX_ARP_THA[],load:0xaabbccddeeff->NXM_NX_ARP_SHA[],move:NXM_OF_ARP_SPA[]->NXM_OF_ARP_TPA[],load:0xade0001->NXM_OF_ARP_SPA[],IN_PORT
+ cookie=0x1020000000000, table=20, priority=200,arp,arp_tpa=10.222.2.1,arp_op=1 actions=move:NXM_OF_ETH_SRC[]->NXM_OF_ETH_DST[],mod_dl_src:aa:bb:cc:dd:ee:ff,load:0x2->NXM_OF_ARP_OP[],move:NXM_NX_ARP_SHA[]->NXM_NX_ARP_THA[],load:0xaabbccddeeff->NXM_NX_ARP_SHA[],move:NXM_OF_ARP_SPA[]->NXM_OF_ARP_TPA[],load:0xade0201->NXM_OF_ARP_SPA[],IN_PORT
+ cookie=0x1000000000000, table=20, priority=190,arp actions=NORMAL
+ cookie=0x1000000000000, table=20, priority=0 actions=drop
+vmware@master:~$ 
+</code></pre>
+
+- the first flow entry is for the traffic from worker1 node to pods on worker2 node
+- the second flow entry is for the traffic from worker1 node to pods on master node
+- the third flow entry is for the traffic local pod <=> another local pod, OR also, for the traffic local gateway <=> local pod
+
+
 
