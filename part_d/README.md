@@ -43,14 +43,14 @@ vmware@master:~$
 
 - The first flow entry is to process the ARP request flows (arp_op=1) sent for the IP address 10.222.0.1 which is **master** node' s antrea-gw0 IP. Then the same flow entry takes certain actions on the flow.
 - The second flow entry is to process the ARP request flows (arp_op=1) sent for the IP address 10.222.2.1 which is the **worker2** node' s antrea-gw0 IP. Then the same flow entry takes certain actions on the flow.
-- The third flow entry is to process all the remaining ARP requests as a generic Layer 2 switch (actions=normal). (Reminder that an ARP request is a Layer 2 broadcast)
-- The fourth flow entry simply drops all the other type of traffic.
+- The third flow entry is to process all the other ARP request flows. The action specified in this flow entry is to process the flows as a generic Layer 2 switch (actions=normal). (Reminder that an ARP request is a Layer 2 broadcast)
+- The fourth flow entry simply drops all the other types of traffic.
 
 **Why would OVS receive ARP requests for other Kubernetes nodes' gw0 interface IPs ?** Isnt each node' s gw0 interface in its unique subnet ? To remind again, the pod subnets assigned by node ipam controller to each individual Kubernetes node in this Kubernetes cluster are as following : 
 
-- master - 10.222.0.0/24
-- worker1 - 10.222.1.0/24
-- worker2 - 10.222.2.0/24
+- master - 10.222.0.0/24 , antrea-gw0 interface IP 10.222.0.1
+- worker1 - 10.222.1.0/24 , antrea-gw0 interface IP 10.222.1.1
+- worker2 - 10.222.2.0/24 , antrea-gw0 interface IP 10.222.2.1
 
 The answer to the above question lies in the route table of the nodes. For instance worker1 node' s route table is shown below. (which was also shown back in [Part A Section 3.1.1](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_a#311-worker-1)). The highlighted lines below are the route entries for the pod subnets of the **other** Kubernetes nodes; to be precise worker2 and master. 
 
