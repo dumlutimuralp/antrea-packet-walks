@@ -66,7 +66,9 @@ default via 10.79.1.1 dev ens160 proto static
 
 The third route entry, "10.222.2.0/24 via 10.222.2.1 dev antrea-gw0 onlink", basically means that the subnet 10.222.2.0/24 is reachable through antrea-gw0 interface via next hop 10.222.2.1. But 10.222.2.1 is **not part of** any directly connected subnets on worker1 node ? So worker1 node would normally need to perform recursive lookup to figure how it can reach 10.222.2.1. Here, the "onlink" parameter used in the same route entry comes to rescue. This parameter makes the Linux Kernel IP stack to think as if 10.222.2.1 is a local next hop which is part of the network that antrea-gw0 interface is also directly connected to. Hence when worker1 node sends any traffic destined to subnet 10.222.2.0/24, it would first send an ARP request for 10.222.2.1 from its antrea-gw0 interface.
 
-**Which traffic pattern would require worker1 node to send an ARP request ?** The easiest one that comes to mind is the flow which is explained in Section 9. In that section kube-proxy managed iptables applied DNAT to the flow from frontend pod to backendsvc service. The traffic pattern was from frontend pod on worker1 node to backend2 pod on worker2 node. 
+**Which traffic pattern would require worker1 node to send an ARP request ?** The easiest one that comes to mind is the flow which is explained in Section 9. In that section kube-proxy managed iptables applied DNAT to the flow from frontend pod to backendsvc service. The traffic pattern was from frontend pod on worker1 node to backend2 pod on worker2 node. Shown below.
+
+
 
 When the flow from 10.222.1.48 (frontend pod) to 10.222.2.34 (backend2 pod) needs to be sent by worker1 node, that is exactly when worker1 node needs to figure out how to send the traffic. What worker1 node does is a route lookup; it identifies that IP 10.222.2.34 matches the third route entry, hence it then needs to access the next hop for that route entry, which is 10.222.2.1. Since the same route entry suggests that 10.222.2.1 is "onlink" on the antrea-gw0 interface, worker1 node sends an ARP request for 10.222.2.1 from its antrea-gw0 interface. 
 
@@ -98,3 +100,10 @@ Once all of the above matches then the same flow entry takes the following actio
 * IN_PORT : This action means "forward the flow back to the port where it came" (which is the antrea-gw0 interface port on OVS on the worker1 node in this case)
 
 Note : More detailed info about these fields can be found in the "ovs-fields" section on [this page](https://docs.openvswitch.org/en/latest/ref/?highlight=fields#man-pages).
+
+There is optimum ARP traffic behaviour involved in this implementation and that is the MAC address "aa:bb:cc:dd:ee:ff". Because this MAC address is a virtual MAC address which is globally used across all the nodes in the Kubernetes cluster by Antrea.
+
+At this stage, it should be quite clear that this flow entry would be used exactly when worker1 node needs to send traffic to a pod running on another node. As in the example explained earlier, worker1 node sending traffic to backend2 pod on worker2 node. 
+
+A quick tcpdump on antrea-gw0 interface on the worker1 node wou
+
