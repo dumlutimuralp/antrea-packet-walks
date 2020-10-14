@@ -2,9 +2,31 @@
 
 This section explains how Address Resolution Protocol (ARP) flows are handled by OVS. It also clarifies for what reason MAC address "aa:bb:cc:dd:ee:ff" is used in various tables by OVS in the previous sections.
 
-To revisit the related section in the OVS pipeline, as shown below, an ARP flow would end up being processed by Table 20.
+The related section in OVS pipeline diagram clearly shows the table that processes ARP flows, which is Table 20. 
 
 ![](2020-10-14_09-36-35.png)
+
+Any flow that comes ingress to OVS through a local port would be first subject to spoofguard check (Table 10) and then if it is an ARP flow it will be handed over to Table 20. A quick review of Table 10 (below) can verify this.
+
+<pre><code>
+vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ovs -- ovs-ofctl dump-flows br-int <b>table=10</b> --no-stats
+ cookie=0x1000000000000, table=10, priority=200,ip,in_port="antrea-gw0" actions=resubmit(,30)
+ cookie=0x1000000000000, table=10, priority=200,<b>arp</b>,in_port="antrea-gw0",arp_spa=10.222.1.1,arp_sha=4e:99:08:c1:53:be <b>actions=resubmit(,20)</b>
+ cookie=0x1030000000000, table=10, priority=200,<b>arp</b>,in_port="coredns--3e3abf",arp_spa=10.222.1.2,arp_sha=f2:82:cc:96:da:bd <b>actions=resubmit(,20)</b>
+ cookie=0x1030000000000, table=10, priority=200,<b>arp</b>,in_port="antrea-o-830766",arp_spa=10.222.1.3,arp_sha=6e:9e:5a:3e:3f:e8 <b>actions=resubmit(,20)</b>
+ cookie=0x1030000000000, table=10, priority=200,<b>arp</b>,in_port="backend1-bab86f",arp_spa=10.222.1.47,arp_sha=f2:32:d8:07:e2:a6 <b>actions=resubmit(,20)</b>
+ cookie=0x1030000000000, table=10, priority=200,<b>arp</b>,in_port="frontend-a3ba2f",arp_spa=10.222.1.48,arp_sha=be:2c:bf:e4:ec:c5 <b>actions=resubmit(,20)</b>
+ cookie=0x1030000000000, table=10, priority=200,ip,in_port="coredns--3e3abf",dl_src=f2:82:cc:96:da:bd,nw_src=10.222.1.2 actions=resubmit(,30)
+ cookie=0x1030000000000, table=10, priority=200,ip,in_port="antrea-o-830766",dl_src=6e:9e:5a:3e:3f:e8,nw_src=10.222.1.3 actions=resubmit(,30)
+ cookie=0x1030000000000, table=10, priority=200,ip,in_port="backend1-bab86f",dl_src=f2:32:d8:07:e2:a6,nw_src=10.222.1.47 actions=resubmit(,30)
+ cookie=0x1030000000000, table=10, priority=200,ip,in_port="frontend-a3ba2f",dl_src=be:2c:bf:e4:ec:c5,nw_src=10.222.1.48 actions=resubmit(,30)
+ cookie=0x1000000000000, table=10, priority=0 actions=drop
+vmware@master:~$ 
+</code></pre>
+
+Highlighted flow entries in the output above proves that if the flow is an ARP flow and also if the source IP/MAC in the ARP header matches the endpoint which is connected to that OVS port, then the flow gets handed over to Table 20, which is the ArpResponder table.
+
+**Note :** SPA acroynm in "arp_spa" stands for source IP address and SHA acronym in "arp_sha" stands for source hardware address (MAC). More detailed info about these acronyms can be found in the "ovs-fields" section on [this page](https://docs.openvswitch.org/en/latest/ref/?highlight=fields#man-pages).
 
 # 12. ArpResponder Table #20
 
