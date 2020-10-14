@@ -2,11 +2,11 @@
 
 This section explains how Address Resolution Protocol (ARP) flows are handled by OVS. It also clarifies for what reason MAC address "aa:bb:cc:dd:ee:ff" is used in various tables by OVS in the previous sections.
 
-The related section in OVS pipeline diagram clearly shows the table that processes ARP flows, which is Table 20. 
+The related part in the OVS pipeline diagram (below) shows the steps related to ARP flows. 
 
 ![](2020-10-14_09-36-35.png)
 
-Any flow that comes ingress to OVS through a local port would be first subject to spoofguard check (Table 10) and then if it is an ARP flow it will be handed over to Table 20. A quick review of Table 10 (below) can verify this.
+Any flow that comes ingress to OVS through a local port would be first subject to spoofguard check (Table 10) and if it is an ARP flow then it is handed over to Table 20. A quick review of Table 10 (below) on worker1 node verifies it.
 
 <pre><code>
 vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ovs -- ovs-ofctl dump-flows br-int <b>table=10</b> --no-stats
@@ -24,7 +24,7 @@ vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ov
 vmware@master:~$ 
 </code></pre>
 
-Highlighted flow entries in the output above proves that if the flow is an ARP flow and also if the source IP/MAC in the ARP header matches the endpoint which is connected to that OVS port, then the flow gets handed over to Table 20, which is the ArpResponder table.
+Highlighted flow entries in the output above prove that if the flow is an ARP flow and also if the source IP/MAC in the ARP header matches the endpoint which is connected to that OVS port, then the flow gets handed over to Table 20, which is the ArpResponder table.
 
 **Note :** SPA acroynm in "arp_spa" stands for source IP address and SHA acronym in "arp_sha" stands for source hardware address (MAC). More detailed info about these acronyms can be found in the "ovs-fields" section on [this page](https://docs.openvswitch.org/en/latest/ref/?highlight=fields#man-pages).
 
@@ -41,11 +41,11 @@ vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ov
 vmware@master:~$ 
 </code></pre>
 
-The first flow entry is to process the ARP request flows sent for the IP address 10.222.0.1 which is **master** node' s antrea-gw0 IP. 
+The first flow entry is to process the ARP request flows (arp_op=1) sent for the IP address 10.222.0.1 which is **master** node' s antrea-gw0 IP. 
 
-The second flow entry is to process the ARP request flows sent for the IP address 10.222.2.1 which is the **worker2** node' s antrea-gw0 IP. 
+The second flow entry is to process the ARP request flows (arp_op=1) sent for the IP address 10.222.2.1 which is the **worker2** node' s antrea-gw0 IP. 
 
-**But why would OVS on worker1 node need to process ARP request flows for other Kubernetes nodes' gw0 interface IPs ?** Isnt each node' s gw0 interface in its unique subnet ? To remind again, the pod subnets assigned by node ipam controller to each individual Kubernetes node in this Kubernetes cluster are as following : 
+**But why would OVS on worker1 receive ARP requests for other Kubernetes nodes' gw0 interface IPs ?** Isnt each node' s gw0 interface in its unique subnet ? To remind again, the pod subnets assigned by node ipam controller to each individual Kubernetes node in this Kubernetes cluster are as following : 
 
 - master - 10.222.0.0/24
 - worker1 - 10.222.1.0/24
