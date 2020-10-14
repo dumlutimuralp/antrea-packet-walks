@@ -4,6 +4,8 @@ This section explains how Address Resolution Protocol (ARP) flows are handled by
 
 To revisit the related section in the OVS pipeline, as shown below, an ARP flow would end up being processed by Table 20.
 
+![](2020-10-14_09-36-35.png)
+
 # 12. ArpResponder Table #20
 
 Table 20 on Worker 1 node is shown below.
