@@ -1,6 +1,6 @@
 # PART D
 
-This section explains how Address Resolution Protocol (ARP) flows are handled by OVS. It also clarifies for what reason MAC address "aa:bb:cc:dd:ee:ff" is used used in flow entries in various OVS tables in the previous sections. 
+This section explains how Address Resolution Protocol (ARP) flows are handled by OVS. It also clarifies for what reason MAC address "aa:bb:cc:dd:ee:ff" is used in various tables by OVS in the previous sections.
 
 # 12. ArpResponder Table #20
 
