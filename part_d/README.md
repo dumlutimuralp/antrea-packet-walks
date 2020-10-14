@@ -41,9 +41,11 @@ vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ov
 vmware@master:~$ 
 </code></pre>
 
-The first flow entry is to process the ARP request flows (arp_op=1) sent for the IP address 10.222.0.1 which is **master** node' s antrea-gw0 IP. 
+The first flow entry is to process the ARP request flows (arp_op=1) sent for the IP address 10.222.0.1 which is **master** node' s antrea-gw0 IP. Then the same flow entry takes certain actions on the flow.
 
-The second flow entry is to process the ARP request flows (arp_op=1) sent for the IP address 10.222.2.1 which is the **worker2** node' s antrea-gw0 IP. 
+The second flow entry is to process the ARP request flows (arp_op=1) sent for the IP address 10.222.2.1 which is the **worker2** node' s antrea-gw0 IP. Then the same flow entry takes certain actions on the flow.
+
+## 12.1
 
 **But why would OVS on worker1 receive ARP requests for other Kubernetes nodes' gw0 interface IPs ?** Isnt each node' s gw0 interface in its unique subnet ? To remind again, the pod subnets assigned by node ipam controller to each individual Kubernetes node in this Kubernetes cluster are as following : 
 
@@ -65,6 +67,8 @@ default via 10.79.1.1 dev ens160 proto static
 
 The third route entry, "10.222.2.0/24 via 10.222.2.1 dev antrea-gw0 onlink", basically means that the subnet 10.222.2.0/24 is reachable through antrea-gw0 interface via next hop 10.222.2.1. But 10.222.2.1 is **not part of** any directly connected subnets on worker1 node ? So worker1 node would normally need to perform recursive lookup to figure how it can reach 10.222.2.1. Here, the "onlink" parameter used in the same route entry comes to rescue. This parameter makes the Linux Kernel IP stack to think as if 10.222.2.1 is a local next hop which is part of the network that antrea-gw0 interface is also directly connected to. Hence when worker1 node sends any traffic destined to subnet 10.222.2.0/24, it would first send an ARP request for 10.222.2.1 from its antrea-gw0 interface.
 
+## 12.2
+
 **Which traffic pattern would require worker1 node to send an ARP request ?** The easiest one that comes to mind is the flow which is explained in Section 9. In that section kube-proxy managed iptables applied DNAT to the flow from frontend pod to backendsvc service. The traffic pattern was from frontend pod on worker1 node to backend2 pod on worker2 node. 
 
 When the flow from 10.222.1.48 (frontend pod) to 10.222.2.34 (backend2 pod) needs to be sent by worker1 node, that is exactly when worker1 node needs to figure out how to send the traffic. What worker1 node does is a route lookup; it identifies that IP 10.222.2.34 matches the third route entry, hence it then needs to access the next hop for that route entry, which is 10.222.2.1. Since the same route entry suggests that 10.222.2.1 is "onlink" on the antrea-gw0 interface, worker1 node sends an ARP request for 10.222.2.1 from its antrea-gw0 interface. 
@@ -73,7 +77,7 @@ The fifth route entry, "10.222.0.0/24 via 10.222.0.1 dev antrea-gw0 onlink", is 
 
 Whenever a new node is added to the Kubernetes cluster, Antrea Node Controller would detect that by watching the Kubernetes API and then add a route entry, similar to the ones above, on worker1 node' s route table. (Explained [here](https://github.com/vmware-tanzu/antrea/blob/master/docs/architecture.md#antrea-agent))
 
-Until now, the reason why a node would send an ARP request for another node' s gw0 interace IP is explained above. **What about how OVS handles these ARP requests ?** For that the second flow entry in Table 20 is explained in more detail below.
+Until now, the reason why a node would send an ARP request for another node' s gw0 interface IP is explained above. **What about OVS ? How does it handle these ARP requests ?** For that the second flow entry in Table 20 is explained in more detail below.
 
 <pre><code>
 cookie=0x1020000000000, table=20, priority=200,arp,arp_tpa=10.222.2.1,arp_op=1 actions=move:NXM_OF_ETH_SRC[]->NXM_OF_ETH_DST[],mod_dl_src:aa:bb:cc:dd:ee:ff,load:0x2->NXM_OF_ARP_OP[],move:NXM_NX_ARP_SHA[]->NXM_NX_ARP_THA[],load:0xaabbccddeeff->NXM_NX_ARP_SHA[],move:NXM_OF_ARP_SPA[]->NXM_OF_ARP_TPA[],load:0xade0201->NXM_OF_ARP_SPA[],IN_PORT
