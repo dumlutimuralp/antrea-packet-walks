@@ -2,9 +2,9 @@
 
 This section explains how Address Resolution Protocol (ARP) flows are handled by OVS. It also clarifies for what reason MAC address "aa:bb:cc:dd:ee:ff" is used in various tables by OVS in the previous sections.
 
-# 12. ArpResponder Table #20
+To revisit the related section in the OVS pipeline, as shown below, an ARP flow would end up being processed by Table 20.
 
-This table defines how OVS handles the ARP requests.
+# 12. ArpResponder Table #20
 
 Table 20 on Worker 1 node is shown below.
 
