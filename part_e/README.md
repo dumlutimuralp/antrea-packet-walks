@@ -770,14 +770,15 @@ tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
 listening on eth0, link-type EN10MB (Ethernet), capture size 262144 bytes
 09:24:10.938242 02:d8:4e:3f:92:1d > c6:f4:b5:76:10:38, ethertype IPv4 (0x0800), length 74: 10.222.1.48.49140 > 10.222.2.34.80: Flags [S], seq 4201074305, win 64860, options [mss 1410,sackOK,TS val 4044015621 ecr 0,nop,wscale 7], length 0
 09:24:10.938278 <b>c6:f4:b5:76:10:38 > 02:d8:4e:3f:92:1d</b>, ethertype IPv4 (0x0800), length 74: <b>10.222.2.34.80 > 10.222.1.48.49140</b>: Flags [S.], seq 4118006349, ack 4201074306, win 64308, options [mss 1410,sackOK,TS val 3333905778 ecr 4044015621,nop,wscale 7], length 0
+<b>OUTPUT OMITTED</b>
 </code></pre>
 
 As seen above the first line is the request that comes ingress to backend1 pod, the second line (highlighted) is the response of the backend2 pod to the request. This response will be explained in this section. The flow has the following values in the Ethernet and IP headers.
 
-Source IP = 10.222.2.34 (backend2 pod IP)
-Destination IP = 10.222.1.48 (frontend pod IP)
-Source MAC = c6:f4:b5:76:10:38 (backend2 pod MAC)
-Destination MAC = 02:d8:4e:3f:92:1d (antrea-gw0 interface MAC on Worker 2)
+- Source IP = 10.222.2.34 (backend2 pod IP)
+- Destination IP = 10.222.1.48 (frontend pod IP)
+- Source MAC = c6:f4:b5:76:10:38 (backend2 pod MAC)
+- Destination MAC = 02:d8:4e:3f:92:1d (antrea-gw0 interface MAC on Worker 2)
 
 This flow will be matched against a flow entry in each OVS Table, processed top to bottom in each individual table, based on the priority value of the flow entry in the table.
 
@@ -875,7 +876,7 @@ This table in essence checks whether if the flow is destined to a Kubernetes ser
 
 The table has only two flow entries. The first flow entry checks whether if the destination IP of the flow is part of the service CIDR range configured in the cluster (which is 10.96.0.0/12); if it does, then certain actions are taken on the flow to steer the flow to the antrea-gw0 interface on the node.  
 
-The destination IP of the current flow is frontend pod IP (10.222.1.48) and it does not fall into the service CIDR range in the first flow entry in Table 40. Hence the current flow will match the second/last entry. The action specified in the last flow entry is to basically hand over the flow to Table 50 (actions=resubmit(,50)). So next stop is Table 50.
+As mentioned before, the current flow is a direct flow between two pods. It is not a flow destined to a Kubernetes service. The destination IP of the current flow is frontend pod IP (10.222.1.48) and it does not fall into the service CIDR range in the first flow entry in Table 40. Hence the current flow will match the second/last entry. The action specified in the last flow entry is to basically hand over the flow to Table 50 (actions=resubmit(,50)). So next stop is Table 50.
 
 **Note :** In the OVS Pipeline diagram [here](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_a/README.md#2-ovs-pipeline), there are tables 45,49 before Table50. However those tables are in use only when Antrea Network Policy feature of Antrea is used. In this Antrea environment, it is not used. 
 
@@ -915,7 +916,7 @@ vmware@master:~$
 
 Basically each flow entry in this flow table checks either the destination IP address or destination MAC address (in some entries both) to make a forwarding decision. 
 
-The current flow' s source and destination MAC and IP address values are still as they are shown back in Section 10. Shown below again. 
+The current flow' s source and destination MAC and IP address values are still as they are shown back in Section 15. Shown below again. 
 
 - Source IP = 10.222.2.34 (backend2 pod IP)
 - Destination IP = 10.222.1.48 (frontend pod IP)
@@ -928,7 +929,7 @@ Based on the current flow' s source and destination MAC/IP values. The flow matc
 
 - Second action is to modify the source MAC address of the flow "mod_dl_src:02:d8:4e:3f:92:1d" to the antrea-gw0 interface MAC of Worker 2 node
 
-- Third action is to modify the destination MAC address of the flow "mod_dl_dst:aa:bb:cc:dd:ee:ff" (When the destination pod is on a different node this global virtual MAC is used. It will be explained in [Part D Section 12](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_d)) 
+- Third action is to modify the destination MAC address of the flow "mod_dl_dst:aa:bb:cc:dd:ee:ff" (When the destination pod is on a different node this global virtual MAC is used. It is explained in [Part D Section 12](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_d)) 
 
 - Fourth action is to set the "NXM_NX_REG1" bit to "0x1" (by load:0x1 in hex, which is 1 in decimal). This register represents the OF Port ID which this flow will be sent through.  "1" is the OF Port ID for the tunnel0 interface on Worker 2 node (genev_sys_6081 interface on Linux) used for overlay networking between Kubernetes worker nodes. The outputs and diagrams shown in [Part A Section 3.4](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_a#34-identifying-ovs-port-ids-of-port-ids) can be reviewed again to see OF Port ID.
 
