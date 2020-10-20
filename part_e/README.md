@@ -1,6 +1,6 @@
 # PART E
 
-This section explains the **direct** packet flow between pods, which are **running on different Kubernetes nodea**, in two main steps as below.
+This section explains the **direct** packet flow between pods, which are **running on different Kubernetes nodes**, in four main steps.
 
 - [13. Worker1 (Phase1)](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_e#13-worker1-phase-1)
 - [14. Worker2 (Phase1)](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_e/README.md#14-worker2-phase-1)
@@ -12,9 +12,7 @@ This section explains the **direct** packet flow between pods, which are **runni
 
 The flow that will be explained in this section is shown below. Notice that this pattern is a <b>direct flow</b> from frontend pod (10.222.1.48) on worker1 node to backend2 pod (10.222.2.34) on worker2 node) <b>not through Kubernetes service.</b>
 
-*****************
-**PUT A DIAGRAM**
-*****************
+![](2020-10-20_14-55-53.png)
 
 A simple "curl 10.222.2.34" (or "curl 10-222-2-34.default.pod.cluster.local where "default" is the namespace) executed on frontend pod on worker1 node would generate this flow. 
 
