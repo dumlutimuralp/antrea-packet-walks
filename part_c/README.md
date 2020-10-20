@@ -721,7 +721,7 @@ The first flow entry checks whether if the flow is a new flow (+new) and if it i
 
 The second flow entry checks whether if the flow is a new flow (+new) and if it is a tracked flow (+trk). 
 
-The current flow is a NEW and TRACKED flow and additionally it is coming from the gateway interface hence its reg0[0..15] was already set to "1" earlier in Table 10 (Section 5.1). **So the current flow matches the first flow entry in Table 105.** The actions in the first flow entry are as following :
+The current flow is a NEW and TRACKED flow and additionally it is coming from the gateway interface hence its reg0[0..15] was already set to "1" earlier in Table 10 (Section 9.1). **So the current flow matches the first flow entry in Table 105.** The actions in the first flow entry are as following :
 
 - commit this tracked flow to conntrack table and hand it over to Table 110 (actions=ct(commit,table=110..)) 
 - set the NXM_NX_CT_MARK[] register to 0x20 (load:0x20)
