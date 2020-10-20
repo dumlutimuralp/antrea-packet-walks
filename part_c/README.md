@@ -891,6 +891,8 @@ vmware@master:~$
 
 The current flow is from frontend pod to backend2 pod and it is a NEW flow. Hence it will match the last entry in this table (highlighted above). The same flow entry has a single action which is handing the flow over to Table 60 (resubmit(,60)). Hence next stop is Table 60.
 
+**Note :** The flow from frontend pod has already been processed by Table 50 on worker1 node (Section 9.6), hence one may ask "Why the need to process the flow once again by Table 50 on worker2 node. This may be considered as a future enhancement.
+
 ### 9.11.5 EgressDefaultRule Table #60
 
 Table 60 on Worker 2 node is shown below. As mentioned in the previous section, there will only be egress rules related to Kubernetes Network Policy "backendpolicy" on this node. Hence the default drop rule only checks the source IP as the backend2 pod' s IP (10.222.2.34).  
