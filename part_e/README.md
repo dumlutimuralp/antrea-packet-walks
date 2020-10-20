@@ -8,7 +8,7 @@ This section explains the **direct** packet flow between pods, which are **runni
 - [16. Worker1 (Phase2)](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_e/README.md#16-worker-1-phase-2)
 
 # 13. Worker1 (Phase 1)
-[Back to table of contents](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_e/README.md#part-e)
+[Back to table of contents](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_e#part-e)
 
 The flow that will be explained in this section is shown below. Notice that this pattern is a <b>direct flow</b> from frontend pod (10.222.1.48) on worker1 node to backend2 pod (10.222.2.34) on worker2 node) <b>not through Kubernetes service.</b>
 
@@ -415,7 +415,7 @@ The source and destination IP/MAC are the ens160 interfaces of the Worker 1 and 
 **Note:** Notice "vni 0x0" that is the actual network ID used in the GENEVE header for this traffic. Apparently no specific ID needs to be used cause OVS keeps track of each flow individually.
 
 # 14. Worker2 (Phase 1)
-[Back to table of contents](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_e/README.md#part-e)
+[Back to table of contents](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_e#part-e)
 
 In this section the processing of the flow, which is from frontend pod to backend2 pod, on worker2 node will be explained.
 
@@ -760,7 +760,7 @@ The logic of "reg0=-0x10000/0x10000" in the flow entry is that the first 0x10000
 So bit 16 must be "1", and that is being verified in "reg0". The first four bits on the left hand side is not worth to mention hence the desired value and actual value are both shown as "0x10000". 
 
 # 15. Worker2 (Phase 2)
-[Back to table of contents](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_e/README.md#part-e)
+[Back to table of contents](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_e#part-e)
 
 In this section the processing of the flow, which is the response from backend2 pod (on Worker 2 node) to the frontend pod (on Worker 1 node), on worker 2 node will be explained. 
 
@@ -1021,7 +1021,7 @@ The first line in the tcpdump output above is the ingress GENEVE flow on the Wor
 **Note:** Notice "vni 0x0" that is the actual network ID used in the GENEVE header for this traffic. Apparently no specific ID needs to be used cause OVS keeps track of each flow individually.
 
 # 16. Worker 1 (Phase 2)
-[Back to table of contents](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_c/README.md#part-e)
+[Back to table of contents](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_e#part-e)
 
 In this section the processing of the flow, which is the response from backend2 pod (on Worker 2 node) to the frontend pod (on Worker 1 node), on worker 1 node will be explained. 
 
