@@ -1018,6 +1018,8 @@ The first line in the tcpdump output above is the ingress GENEVE flow on the Wor
 
 In this section the processing of the flow, which is the response from backend2 pod (on Worker 2 node) to the frontend pod (on Worker 1 node), on worker 1 node will be explained. 
 
+![](2020-10-20_17-01-38.png)
+
 When the worker 1 node receives the flow, the Linux Kernel IP stack reads the GENEVE header, strips it out and then sends the flow over to the tunnel0 (genev_sys_6081) interface.
 
 At this stage the inner headers have the following IP/MAC. (they have not changed since Section 15.10)
@@ -1106,7 +1108,7 @@ This table in essence checks whether if the flow is destined to a Kubernetes ser
 
 The table has only two flow entries. The first flow entry checks whether if the destination IP of the flow is part of the service CIDR range configured in the cluster (which is 10.96.0.0/12); if it does, then certain actions are taken on the flow to steer the flow to the antrea-gw0 interface on the node.  
 
-The destination IP of the current flow is frontend pod IP (10.222.1.48) and it does not fall into the service CIDR range in the first flow entry in Table 40. Hence the current flow matches the second/last flow entry. That flow entry basically hands the flow over to Table 50 (actions=resubmit(,50)) . So next stop is Table 50.
+As mentioned before, the current flow is a direct flow between two pods. It is not a flow destined to a Kubernetes service. The destination IP of the current flow is frontend pod IP (10.222.1.48) and it does not fall into the service CIDR range in the first flow entry in Table 40. Hence the current flow matches the second/last flow entry. That flow entry basically hands the flow over to Table 50 (actions=resubmit(,50)) . So next stop is Table 50.
 
 **Note :** In the OVS Pipeline diagram [here](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_a/README.md#2-ovs-pipeline), there are tables 45,49 before Table50. However those tables are in use only when Antrea Network Policy feature of Antrea is used. In this Antrea environment, it is not used. 
 
@@ -1135,6 +1137,8 @@ vmware@master:~$
 The current flow is actually the response of backend2 pod to frontend pod as part of the previous flow from frontend pod (the flow which is explained back in section 13); because of this reason the current flow is not NEW and it is part of an already established flow.
 
 Hence the current flow will match the first flow entry in this table ("ct_state=-new+est"). The action specified in this first flow entry is handing the flow over to Table 70. (actions=resubmit(,70)) So next stop is Table 70. 
+
+Note : The flow from frontend pod has already been processed by Table 50 on worker2 node (Section 15.6), hence one may ask "Why the need to process the flow once again by Table 50 on worker2 node. This could be a future enhancement for Antrea ?
 
 ## 16.6 L3Forwarding Table #70
 
