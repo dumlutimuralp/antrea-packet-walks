@@ -3,7 +3,9 @@
 This section explains the **direct** packet flow between pods, which are **running on different Kubernetes nodea**, in two main steps as below.
 
 - [13. Worker1 (Phase1)](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_e#13-worker1-phase-1)
-- [14. Worker2](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_b/README.md#5-Service-to-backend-pod)
+- [14. Worker2 (Phase1)](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_e/README.md#14-worker2-phase-1)
+- [15. Worker2 (Phase2)](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_e/README.md#14-worker2-phase-2)
+- [16. Worker1 (Phase2)](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_e/README.md#14-worker1-phase-2)
 
 # 13. Worker1 (Phase 1)
 [Back to table of contents](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_e/README.md#part-e)
