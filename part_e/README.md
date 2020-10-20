@@ -14,10 +14,10 @@ The flow that will be explained in this section is shown below. Notice that this
 
 ![](2020-10-20_14-55-53.png)
 
-A simple "curl 10.222.2.34" (or "curl 10-222-2-34.default.pod.cluster.local where "default" is the namespace) executed on frontend pod on worker1 node would generate this flow. 
+A simple "curl 10.222.2.34" (or "curl 10-222-2-34.default.pod.cluster.local where "default" is the namespace) executed on frontend pod on worker1 node would generate this flow. To emphasize again, here a direct request is made to backend2 pod, not through a Kubernetes service.
 
 <pre><code>
-vmware@master:~$ k exec -it fronend -- sh
+vmware@master:~$ k exec -it frontend -- sh
 / # curl 10.222.2.34
 Praqma Network MultiTool (with NGINX) - backend2 - 10.222.2.34/24
 / # 
