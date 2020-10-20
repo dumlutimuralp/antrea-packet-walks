@@ -1054,7 +1054,7 @@ The sixth flow entry defines two actions for conjunction 1 as soon as all fields
 
 **Note :** NXM_NX_REG6 register is used to cache the conjunction id which is mapped to the ingress Network Policy Rule in Antrea agent and also then written back to the Antrea custom resource definition in Kubernetes API for another feature of Antrea called "traceflow". More info on it can be found [here](https://github.com/vmware-tanzu/antrea/blob/master/docs/traceflow-guide.md).
 
-**The current flow (which is from frontend pod IP to backend2 pod IP on protocol TCP 80) matches conjunction 1 (defined in sixth flow entry) and it will be handed over to Table 105. So next stop is Table 105. (explained in Section 5.10 below)**
+**The current flow (which is from frontend pod IP to backend2 pod IP on protocol TCP 80) matches conjunction 1 (defined in sixth flow entry) and it will be handed over to Table 105. So next stop is Table 105. (explained in Section 9.11.9 below)**
 
 For reference, remaining flow entries are explained below : 
 
