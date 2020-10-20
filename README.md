@@ -29,3 +29,11 @@ _**Special thanks to [Quan Tian](https://github.com/tnqn), [Wenying Dong](https:
 - [11. Service to Frontend](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_c#11-service-to-frontend-pod)
 
 ## [PART D - ARP](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_d/README.md)
+
+## [PART E - Different Nodes - Pod to Pod Direct Flow](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_e/README.md#part-e)
+
+- [13. Worker1 (Phase 1)](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_e#13-worker1-phase-1)
+- [14. Worker2 (Phase 1)](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_e/README.md#14-worker2-phase-1)
+- [15. Worker2 (Phase 2)](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_e#15-worker2-phase-2)
+- [16. Worker1 (Phase 2)](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_e/README.md#16-worker-1-phase-2)
+
