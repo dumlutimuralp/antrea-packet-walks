@@ -1411,7 +1411,7 @@ At this stage the inner headers have the following IP/MAC. (they have not change
 - Source IP = 10.222.2.34 (backend2 pod IP)
 - Destination IP = 10.222.1.48 (frontend pod IP)
 - Source MAC = 02:d8:4e:3f:92:1d (antrea-gw0 interface MAC on Worker 2)
-- Destination MAC = aa:bb:cc:dd:ee:ff (When the destination pod is on a different node this global virtual MAC is used. It is explained in [Part D Section 12](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_d#12-arp-process) 
+- Destination MAC = aa:bb:cc:dd:ee:ff (When the destination pod is on a different node this global virtual MAC is used. It is explained in [Part D Section 12](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_d#12-arp-process))
 
 ### 10.11.1 Classifier Table #0
 
