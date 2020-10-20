@@ -30,6 +30,8 @@ _**Special thanks to [Quan Tian](https://github.com/tnqn), [Wenying Dong](https:
 
 ## [PART D - ARP](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_d/README.md)
 
+- [12. ArpResponder Table #20](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_d/README.md#12-arpresponder-table-20)
+
 ## [PART E - Different Nodes - Pod to Pod Direct Flow](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_e/README.md#part-e)
 
 - [13. Worker1 (Phase 1)](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_e#13-worker1-phase-1)
