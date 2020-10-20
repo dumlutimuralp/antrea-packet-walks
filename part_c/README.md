@@ -685,6 +685,8 @@ Based on the current flow' s source and destination MAC/IP values the flow match
 
 - First action is to decrement the TTL ("dec_ttl") since the destination IP of the flow is on another subnet than the one frontend pod is, so this flow is actually a routed flow.  
 
+**Note :** Linux Kernel itself already decrements TTL when the packet gets processed by Iptables hence this step becomes duplicate work in that sense. Please refer to this [bug](https://github.com/vmware-tanzu/antrea/issues/1391). Hence this table may change in the future to process flows that comes from gw0 interface in a different way.
+
 - Second action is to modify the source MAC address of the flow "mod_dl_src: 4e:99:08:c1:53:be" (which is the antrea-gw0 interface MAC of Worker 1 node)
 
 - Third action is to modify the destination MAC address of the flow "mod_dl_dst: aa:bb:cc:dd:ee:ff" (This MAC address is related to ARP processing and will be explained in [Part D Section 12](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_d)).
