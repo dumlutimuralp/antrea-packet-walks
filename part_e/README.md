@@ -25,8 +25,6 @@ Praqma Network MultiTool (with NGINX) - backend2 - 10.222.2.34/24
 
 While performing curl command on frontend pod, getting a quick tcpdump from the pod (in a different terminal window) would reveal the source and destination IP/MAC of the flow. 
 
-CHANGE THE BELOW OUTPUT FOR FRONTEND POD
-
 <pre><code>
 vmware@master:~$ k exec -it frontend -- sh
 / # 
@@ -35,22 +33,12 @@ vmware@master:~$ k exec -it frontend -- sh
 tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
 listening on eth0, link-type EN10MB (Ethernet), capture size 262144 bytes
 09:59:55.973231 <b>be:2c:bf:e4:ec:c5 > 4e:99:08:c1:53:be</b>, ethertype IPv4 (0x0800), length 74: 10.222.1.48.40468 > 10.222.2.34.80: Flags [S], seq 373695439, win 64860, options [mss 1410,sackOK,TS val 1573094794 ecr 0,nop,wscale 7], length 0
-09:59:55.975189 <b>4e:99:08:c1:53:be > be:2c:bf:e4:ec:c5</b>, ethertype IPv4 (0x0800), length 74: 10.222.2.34.80 > 10.222.1.48.40468: Flags [S.], seq 516744320, ack 373695440, win 64308, options [mss 1410,sackOK,TS val 671915237 ecr 1573094794,nop,wscale 7], length 0
-09:59:55.975222 be:2c:bf:e4:ec:c5 > 4e:99:08:c1:53:be, ethertype IPv4 (0x0800), length 66: 10.222.1.48.40468 > 10.222.2.34.80: Flags [.], ack 1, win 507, options [nop,nop,TS val 1573094796 ecr 671915237], length 0
-09:59:55.975330 be:2c:bf:e4:ec:c5 > 4e:99:08:c1:53:be, ethertype IPv4 (0x0800), length 141: 10.222.1.48.40468 > 10.222.2.34.80: Flags [P.], seq 1:76, ack 1, win 507, options [nop,nop,TS val 1573094796 ecr 671915237], length 75: HTTP: GET / HTTP/1.1
-09:59:55.975705 4e:99:08:c1:53:be > be:2c:bf:e4:ec:c5, ethertype IPv4 (0x0800), length 66: 10.222.2.34.80 > 10.222.1.48.40468: Flags [.], ack 76, win 502, options [nop,nop,TS val 671915238 ecr 1573094796], length 0
-09:59:55.976009 4e:99:08:c1:53:be > be:2c:bf:e4:ec:c5, ethertype IPv4 (0x0800), length 302: 10.222.2.34.80 > 10.222.1.48.40468: Flags [P.], seq 1:237, ack 76, win 502, options [nop,nop,TS val 671915239 ecr 1573094796], length 236: HTTP: HTTP/1.1 200 OK
-09:59:55.976030 be:2c:bf:e4:ec:c5 > 4e:99:08:c1:53:be, ethertype IPv4 (0x0800), length 66: 10.222.1.48.40468 > 10.222.2.34.80: Flags [.], ack 237, win 506, options [nop,nop,TS val 1573094797 ecr 671915239], length 0
-09:59:55.976275 4e:99:08:c1:53:be > be:2c:bf:e4:ec:c5, ethertype IPv4 (0x0800), length 132: 10.222.2.34.80 > 10.222.1.48.40468: Flags [P.], seq 237:303, ack 76, win 502, options [nop,nop,TS val 671915239 ecr 1573094797], length 66: HTTP
-09:59:55.976294 be:2c:bf:e4:ec:c5 > 4e:99:08:c1:53:be, ethertype IPv4 (0x0800), length 66: 10.222.1.48.40468 > 10.222.2.34.80: Flags [.], ack 303, win 506, options [nop,nop,TS val 1573094797 ecr 671915239], length 0
-09:59:55.976422 be:2c:bf:e4:ec:c5 > 4e:99:08:c1:53:be, ethertype IPv4 (0x0800), length 66: 10.222.1.48.40468 > 10.222.2.34.80: Flags [F.], seq 76, ack 303, win 506, options [nop,nop,TS val 1573094797 ecr 671915239], length 0
-09:59:55.976608 4e:99:08:c1:53:be > be:2c:bf:e4:ec:c5, ethertype IPv4 (0x0800), length 66: 10.222.2.34.80 > 10.222.1.48.40468: Flags [F.], seq 303, ack 77, win 502, options [nop,nop,TS val 671915239 ecr 1573094797], length 0
-09:59:55.976622 be:2c:bf:e4:ec:c5 > 4e:99:08:c1:53:be, ethertype IPv4 (0x0800), length 66: 10.222.1.48.40468 > 10.222.2.34.80: Flags [.], ack 304, win 506, options [nop,nop,TS val 1573094797 ecr 671915239], length 0
+<b>OUTPUT OMITTED</b>
 
 / # 
 </code></pre>
 
-As seen above (only the first two lines are highlighted), the flow has the following values in the Ethernet and IP headers.
+As seen above, the flow has the following values in the Ethernet and IP headers.
 
 - Source IP = 10.222.1.48 (frontend pod IP)
 - Destination IP = 10.222.2.34 (backend2 pod IP)
@@ -153,7 +141,7 @@ This table in essence checks whether if the flow is destined to a Kubernetes ser
 
 The table has only two flow entries. The first flow entry checks whether if the destination IP of the flow is part of the service CIDR range configured in the cluster (which is 10.96.0.0/12); if it does, then certain actions are taken on the flow to steer the flow to the antrea-gw0 interface on the Worker 1 node.  
 
-The destination IP of the current flow is backend2 pod IP (10.222.2.34) and it does not fall into the service CIDR range in the first flow entry in Table 40. Hence the current flow will match the second/last entry. The action specified in the last flow entry is to basically hand the flow over to Table 50 (actions=resubmit(,50)). So next stop is Table 50.
+As mentioned before, the current flow is a direct flow between two pods. It is not a flow destined to a Kubernetes service. The destination IP of the flow is the backend2 pod IP (10.222.2.34) and it does not fall into the service CIDR range in the first flow entry in Table 40. Hence the current flow will match the second/last entry. The action specified in the last flow entry is to basically hand the flow over to Table 50 (actions=resubmit(,50)). So next stop is Table 50.
 
 **Note :** In the OVS Pipeline diagram [here](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_a/README.md#2-ovs-pipeline), there are tables 45,49 before Table50. However those tables are in use only when Antrea Network Policy feature of Antrea is used. In this Antrea environment, it is not used. 
 
@@ -417,6 +405,8 @@ The source and destination IP/MAC are the ens160 interfaces of the Worker 1 and 
 
 In this section the processing of the flow, which is from frontend pod to backend2 pod, on worker2 node will be explained.
 
+![](2020-10-20_16-03-52.png)
+
 When the Worker 2 node receives the flow, the Linux Kernel IP stack reads the GENEVE header, strips it out and then sends the flow over to the tunnel0 (genev_sys_6081) interface.
 
 At this stage the inner headers have the following IP/MAC. (they have not changed since Section 13)
@@ -500,7 +490,7 @@ This table in essence checks whether if the flow is destined to a Kubernetes ser
 
 The table has only two flow entries. The first flow entry checks whether if the destination IP of the flow is part of the service CIDR range configured in the cluster (which is 10.96.0.0/12); if it does, then certain actions are taken on the flow to steer the flow to the antrea-gw0 interface on the node.  
 
-The destination IP of the current flow is backend2 pod IP (10.222.2.34) and it does not fall into the service CIDR range in the first flow entry in Table 40. Hence the current flow will match <b>the second/last entry</b>. The action specified in the last flow entry is to basically hand over the flow to Table 50 (actions=resubmit(,50)). So next stop is Table 50.
+As mentioned before, the current flow is a direct flow between two pods. It is not a flow destined to a Kubernetes service. The destination IP of the current flow is backend2 pod IP (10.222.2.34) and it does not fall into the service CIDR range in the first flow entry in Table 40. Hence the current flow will match <b>the second/last entry</b>. The action specified in the last flow entry is to basically hand over the flow to Table 50 (actions=resubmit(,50)). So next stop is Table 50.
 
 **Note :** In the OVS Pipeline diagram [here](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_a/README.md#2-ovs-pipeline), there are tables 45,49 before Table50. However those tables are in use only when Antrea Network Policy feature of Antrea is used. In this Antrea environment, it is not used. 
 
@@ -523,7 +513,7 @@ vmware@master:~$
 
 The current flow is from frontend pod to backend2 pod and it is a NEW flow. Hence it will match the last entry in this table (highlighted above). The same flow entry has a single action which is handing the flow over to Table 60 (resubmit(,60)). Hence next stop is Table 60.
 
-**Note :** The flow from frontend pod has already been processed by Table 50 on worker1 node (Section 13.6), hence one may ask "Why the need to process the flow once again by Table 50 on worker2 node. This may be considered as a future enhancement.
+**Note :** The flow from frontend pod has already been processed by Table 50 on worker1 node (Section 13.6), hence one may ask "Why the need to process the flow once again by Table 50 on worker2 node. This could be a future enhancement for Antrea ?
 
 ## 14.6 EgressDefaultRule Table #60
 
@@ -562,15 +552,14 @@ The current flow' s source and destination MAC and IP address values are still a
 - Source MAC = 4e:99:08:c1:53:be (antrea-gw0 interface MAC on Worker 1)
 - Destination MAC = aa:bb:cc:dd:ee:ff (When the destination pod is on a different node this global virtual MAC is used. It is explained in Section 12) 
 
-Based on the current flow' s source and destination MAC/IP values. The flow matches the third flow entry in Table 70, since the destination IP and MAC matches the "nw_dst" and "dl_dst" fields. There are several actions in this third flow entry which are explained below : 
+Based on the current flow' s source and destination MAC/IP values. The flow matches the third flow entry in Table 70, since the destination IP and MAC matches the "nw_dst" and "dl_dst" fields. The following actions are taken on the flow : 
 
-- First action is to modify the source MAC address of the flow "mod_dl_src:02:d8:4e:3f:92:1d" to the antrea-gw0 interface MAC of Worker 2 node
+- modify the source MAC address of the flow "mod_dl_src:02:d8:4e:3f:92:1d" to the antrea-gw0 interface MAC of Worker 2 node
+- modify the destination MAC address of the flow "mod_dl_dst:c6:f4:b5:76:10:38" to the backend2 pod's MAC
+- decrement the TTL ("dec_ttl") since this is a routed flow
+- resubmit the flow to Table 80 ("resubmit(,80)")
 
-- Second action is to modify the destination MAC address of the flow "mod_dl_dst:c6:f4:b5:76:10:38" to the backend2 pod's MAC
-
-- Third action is to decrement the TTL ("dec_ttl") since this is a routed flow
-
-- Fourth action is "resubmit(,80)" which basically hands the flow over to Table 80. Hence next stop is Table 80. 
+Hence next stop is Table 80. 
 
 ## 14.8 L2ForwardingCalc Table #80
 
@@ -724,7 +713,7 @@ The first flow entry checks whether if the flow is a new flow (+new) and if it i
 
 The second flow entry checks whether if the flow is a new flow (+new) and if it is a tracked flow (+trk). 
 
-In this case the current flow matches this <b>second</b> flow entry. It is not coming from the gateway interface; it is coming from the tunnel interface.   It is a new flow from frontend pod to backend2 pod and it is being tracked (previously from Conntrack Table 30 and 31). The actions in that second flow entry are as following :
+In this case the current flow matches this <b>second</b> flow entry. It is not coming from the gateway interface; it is coming from the tunnel interface.   It is a new flow from frontend pod to backend2 pod and it is being tracked (previously from Conntrack Table 30 and 31). The following actions are taken on the flow :
 
 - commit this tracked flow to conntrack table (actions=ct(commit,..)) 
 - hand the flow over to the next table (,table=110)
@@ -762,30 +751,35 @@ So bit 16 must be "1", and that is being verified in "reg0". The first four bits
 
 In this section the processing of the flow, which is the response from backend2 pod (on Worker 2 node) to the frontend pod (on Worker 1 node), on worker 2 node will be explained. 
 
-*****************
-**PUT A DIAGRAM**
-*****************
+![](2020-10-20_16-30-44.png)
 
 To verify how backend2 pod responds to requests from the frontend pod, a quick tcpdump on the backend2 pod would reveal the source and destination IP/MAC of this flow. It is shown below.
 
 <pre><code>
 vmware@master:~$ kubectl exec -it frontend -- sh
-/ # curl backendsvc
+/ # curl 10.222.2.34
 Praqma Network MultiTool (with NGINX) - backend2 - 10.222.2.34/24
 </code></pre>
 
-while performing curl on frontend pod (as shown above), in another ssh session to the Kubernetes master node :
+While performing curl on frontend pod (as shown above), in another ssh session to the Kubernetes master node :
 
 <pre><code>
 vmware@master:~$ kubectl exec -it backend2 -- sh
 / #  tcpdump -en
 tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
 listening on eth0, link-type EN10MB (Ethernet), capture size 262144 bytes
-09:24:10.938242 <b>02:d8:4e:3f:92:1d > c6:f4:b5:76:10:38</b>, ethertype IPv4 (0x0800), length 74: <b>10.222.1.48.49140 > 10.222.2.34.80</b>: Flags [S], seq 4201074305, win 64860, options [mss 1410,sackOK,TS val 4044015621 ecr 0,nop,wscale 7], length 0
+09:24:10.938242 02:d8:4e:3f:92:1d > c6:f4:b5:76:10:38, ethertype IPv4 (0x0800), length 74: 10.222.1.48.49140 > 10.222.2.34.80: Flags [S], seq 4201074305, win 64860, options [mss 1410,sackOK,TS val 4044015621 ecr 0,nop,wscale 7], length 0
 09:24:10.938278 <b>c6:f4:b5:76:10:38 > 02:d8:4e:3f:92:1d</b>, ethertype IPv4 (0x0800), length 74: <b>10.222.2.34.80 > 10.222.1.48.49140</b>: Flags [S.], seq 4118006349, ack 4201074306, win 64308, options [mss 1410,sackOK,TS val 3333905778 ecr 4044015621,nop,wscale 7], length 0
 </code></pre>
 
-##
+As seen above the first line is the request that comes ingress to backend1 pod, the second line (highlighted) is the response of the backend2 pod to the request. This response will be explained in this section. The flow has the following values in the Ethernet and IP headers.
+
+Source IP = 10.222.2.34 (backend2 pod IP)
+Destination IP = 10.222.1.48 (frontend pod IP)
+Source MAC = c6:f4:b5:76:10:38 (backend2 pod MAC)
+Destination MAC = 02:d8:4e:3f:92:1d (antrea-gw0 interface MAC on Worker 2)
+
+This flow will be matched against a flow entry in each OVS Table, processed top to bottom in each individual table, based on the priority value of the flow entry in the table.
 
 ## 15.1 Classifier Table #0
 
@@ -998,7 +992,7 @@ To verify how Worker 2 node encapsulates the flows, a quick tcpdump on the Worke
 
 <pre><code>
 vmware@master:~$ kubectl exec -it frontend -- sh
-/ # curl backendsvc
+/ # curl 10.222.2.34
 Praqma Network MultiTool (with NGINX) - backend2 - 10.222.2.34/24
 </code></pre>
 
