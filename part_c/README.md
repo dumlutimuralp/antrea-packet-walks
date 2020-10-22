@@ -214,6 +214,10 @@ At this stage, the Kernel IP stack of Worker 1 node receives the flow from antre
 
 Basically Kube Services chain "KUBE-SVC-EKL7ZEFK3VFJKKGJ" applies destination NAT on flows destined to backendsvc service IP and picks either backend1 pod or backend2 pod as the destination. This is typical kube-proxy managed, iptables driven "ClusterIP" type of Kubernetes service functionality which is providing distributed load balancing for flows within a Kubernetes cluster.
 
+- "-t nat" pulls the NAT table 
+- "-L" lists all the rules in the given table
+- "-n" displayes IP address and port numbers (rather than hostnames and service names)
+
 <pre><code>
 vmware@worker1:~$ sudo iptables -t nat -L -n
 Chain PREROUTING (policy ACCEPT)
