@@ -1000,7 +1000,7 @@ Table #31 on Worker 1 node is shown below.
 <pre><code>
 vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ovs -- ovs-ofctl dump-flows br-int table=31 --no-stats
  cookie=0x1000000000000, table=31, priority=210,ct_state=-new+trk,ct_mark=0x20,ip,reg0=0x1/0xffff actions=resubmit(,40)
- cookie=0x1000000000000, table=31, priority=200,<b>ct_state=-new+trk,ct_mark=0x20,ip actions=load:0x4e9908c153be->NXM_OF_ETH_DST[],resubmit(,40)</b>>
+ cookie=0x1000000000000, table=31, priority=200,<b>ct_state=-new+trk,ct_mark=0x20,ip actions=load:0x4e9908c153be->NXM_OF_ETH_DST[],resubmit(,40)</b>
  cookie=0x1000000000000, table=31, priority=190,ct_state=+inv+trk,ip actions=drop
  cookie=0x1000000000000, table=31, priority=0 actions=resubmit(,40)
 vmware@master:~$ 
