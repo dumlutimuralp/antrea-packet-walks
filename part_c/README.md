@@ -655,6 +655,8 @@ vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ov
 vmware@master:~$
 </code></pre>
 
+Table #60 corresponds to the isolation rules. Since in Kubernetes there is a whitelisting model being applied, unless any explicit egress rules configured in the Kubernets Network policy, the pods, which have that network policy applied, will be isolated by default. It is basically realizes the typical "deny any any" default rule at the end of the firewall rule base.
+
 Reason there are two source IPs in two different flow entries here is, there is an egress rule used in two different Kubernetes Network Policies; one is "frontendpolicy" applied to frontend pod, the other is "backendpolicy" applied to backend pods. Each of the first two flow entries in this table used to deny the traffic from the respective pod running on Worker 1 node. 
 
 The last flow entry in Table 60 basically hands all the flows (which did not match any of the conjunctions in Table 50 nor the drop flow entries in Table 60) over to the next table , Table 70.
