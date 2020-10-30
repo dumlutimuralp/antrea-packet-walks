@@ -49,7 +49,7 @@ controllerVersion: v0.10.0-dev-4ed2c67
 vmware@master:~$ 
 </code></pre>
 
-Antrea is installed with its **default features** in this environment. By default (in this version) it uses GENEVE encapsulation for inter node networking and relies on kube-proxy on the nodes for ClusterIP services and NodePort services. The alpha or beta features such as Antrea Network Policy, Antrea Cluster Network Policy or Antrea Proxy are **NOT** used in this environment. 
+**IMPORTANT NOTE :** Antrea is installed with its **default features** in this environment. By default (in this version) it uses GENEVE encapsulation for inter node networking and relies on kube-proxy on the nodes for ClusterIP services and NodePort services. The alpha or beta features such as Antrea Network Policy, Antrea Cluster Network Policy or Antrea Proxy are **NOT** used in this environment. 
 
 The Kubernetes worker node and pod connectivity diagram for the test environment used is shown below. 
 
