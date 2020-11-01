@@ -938,11 +938,11 @@ The current flow' s source and destination MAC and IP address values are still a
 
 Based on the current flow' s source and destination MAC/IP values. The flow matches the third flow entry in Table 70, since the destination IP and MAC matches the "nw_dst" and "dl_dst" fields. There are several actions in this third flow entry which are explained below : 
 
-- First action is to modify the source MAC address of the flow "mod_dl_src:02:d8:4e:3f:92:1d" to the antrea-gw0 interface MAC of Worker 2 node
+- First action is to decrement the TTL ("dec_ttl") since this is a routed flow
 
-- Second action is to modify the destination MAC address of the flow "mod_dl_dst:c6:f4:b5:76:10:38" to the backend2 pod's MAC
+- Second action is to modify the source MAC address of the flow "mod_dl_src:02:d8:4e:3f:92:1d" to the antrea-gw0 interface MAC of Worker 2 node
 
-- Third action is to decrement the TTL ("dec_ttl") since this is a routed flow
+- Third action is to modify the destination MAC address of the flow "mod_dl_dst:c6:f4:b5:76:10:38" to the backend2 pod's MAC
 
 - Fourth action is "resubmit(,80)" which basically hands the flow over to Table 80. Hence next stop is Table 80. 
 
