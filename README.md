@@ -39,3 +39,7 @@ _**Special thanks to [Quan Tian](https://github.com/tnqn), [Wenying Dong](https:
 - [15. Worker2 (Phase 2)](https://github.com/dumlutimuralp/antrea-packet-walks/tree/master/part_e#15-worker2-phase-2)
 - [16. Worker1 (Phase 2)](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_e/README.md#16-worker-1-phase-2)
 
+## [PART F - Client to Nodeport](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_f/README.md)
+- [17. Client to Frontend](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_f/README.md#17-client-to-frontend)
+- [18. Frontend to Client](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_f/README.md#18-frontend-to-client)
+
