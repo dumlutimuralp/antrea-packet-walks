@@ -1,6 +1,9 @@
 # PART F
 
-This section explains the packet flow from an external client to Kubernetes service of type "nodeport". 
+This section explains the packet flow from an external client to Kubernetes service of type "nodeport".
+
+- [17. Client to Frontend](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_f/README.md#17-client-to-frontend)
+- [18. Frontend to Client](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_f/README.md#18-frontend-to-client)
 
 In this scenario frontend pod is exposed with Kubernetes service type of "NodePort". As shown below.
 
