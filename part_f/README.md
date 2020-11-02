@@ -33,7 +33,7 @@ kubernetes   10.79.1.200:6443                49d
 vmware@master:~$ 
 </code></pre>
 
-## 18. Client to Frontend
+## 17. Client to Frontend
 
 The following diagram shows the flow that will be explained in this section. 
 
@@ -69,7 +69,7 @@ First line in the above output is the packet coming from client to the worker 2 
 - Source MAC = 00:0c:29:fa:d8:a8 (Network router MAC)
 - Destination MAC = 00:50:56:8f:1c:f6 (Worker 2 ens160 interface MAC)
 
-### 18.1 Worker 2 Iptables
+### 17.1 Worker 2 Iptables
 
 When worker 2 node Linux IP stack receives the flow, kube-proxy managed iptables rules process it. Worker 2 node iptables NAT rules are shown below. 
 
@@ -304,7 +304,7 @@ At this stage the flow has the following content :
 
 This flow comes ingress to OVS on worker 2 node through the antrea-gw0 interface. It will be matched against a flow entry in each OVS Table, processed top to bottom in each individual table, based on the priority value of the flow entry in the table.
 
-### 18.2 Worker 2 Classifier Table #0
+### 17.2 Worker 2 Classifier Table #0
 
 Table #0 on Worker 2 node is shown below.
 
@@ -327,7 +327,7 @@ So next stop is Table 10.
 - "0x1" is 1 × (16 to the power of 0) = 1 x 1 = 1 (in decimal)
 - or "0x10" is 1 x (16 to the power of 1) + 0 x (16 to the power of 0) = 16 + 0 = 16 (in decimal)
 
-### 18.3 Worker 2 Spoofguard Table #10
+### 17.3 Worker 2 Spoofguard Table #10
 
 Table #10 on Worker 2 node is shown below. "nw_src" refers to the IP address and "dl_src" refers to the MAC address of the pod connected to the respective OF port.
 
@@ -349,7 +349,7 @@ So next stop is Table 30.
 
 **Note :** Spoofguard does not do any checks for IP packets on the antrea-gw0 port. However it still checks the ARP flows on that port. Second entry in the table is used for that purpose. It basically checks the ARP requests/replies sent by the antrea-gw0 interface.
 
-### 18.4 Worker 2 Conntrack Table #30
+### 17.4 Worker 2 Conntrack Table #30
 
 Table #30 on Worker 2 node is shown below.
 
@@ -363,7 +363,7 @@ Conntrack table' s job is to start tracking all the traffic. ("ct" action means 
 
 **Note :** Zone ID is explained [here](https://github.com/vmware-tanzu/antrea/blob/master/docs/ovs-pipeline.md#conntracktable-30) as "A ct_zone is simply used to isolate connection tracking rules. It is similar in spirit to the more generic Linux network namespaces, but ct_zone is specific to conntrack and has less overhead." 
 
-### 18.4 Worker 2 ConntrackState Table #31
+### 17.4 Worker 2 ConntrackState Table #31
 
 Table #31 on Worker 2 node is shown below. 
 
@@ -381,7 +381,7 @@ ConntrackState table processes all the flows that are in tracked state (basicall
 
 The current flow is a completely NEW flow destined to frontend pod. Hence the flow matches the <b>last entry</b> in the flow table highlighted above. Notice the action in the same flow entry is handing the flow over to the next table which is table 40 (resubmit(,40)). So next stop is Table 40.
 
-### 18.5 Worker 2 DNAT Table #40
+### 17.5 Worker 2 DNAT Table #40
 
 Table #40 on Worker 2 node is shown below.
 
@@ -400,7 +400,7 @@ The destination IP of the current flow is frontend pod IP (10.222.1.48) and it d
 
 **Note :** In the OVS Pipeline diagram [here](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_a/README.md#2-ovs-pipeline), there are tables 45,49 before Table50. However those tables are in use only when Antrea Network Policy feature of Antrea is used. In this Antrea environment, it is not used. 
 
-### 18.6 Worker 2 EgressRule Table #50
+### 17.6 Worker 2 EgressRule Table #50
 
 At this stage, the flow is in Table 50. 
 
@@ -417,7 +417,7 @@ vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-fv5x9 -c antrea-ov
 vmware@master:~$ 
 </code></pre>
 
-The current flow is destined to frontend pod IP and it is a NEW flow. It has got nothing to do with the rules that are configured in the Kubernetes Network Policy "backendpolicy"; hence the current flow matches the **last** entry in the table (highlighted above). The same flow entry has a single action which is handing the flow over to Table 60 (resubmit(,60)). **Hence next stop is Table 60, explained in next section, Section 18.7.**
+The current flow is destined to frontend pod IP and it is a NEW flow. It has got nothing to do with the rules that are configured in the Kubernetes Network Policy "backendpolicy"; hence the current flow matches the **last** entry in the table (highlighted above). The same flow entry has a single action which is handing the flow over to Table 60 (resubmit(,60)). **Hence next stop is Table 60, explained in next section, Section 17.7.**
 
 For reference the first three flows in this table are explained below.
 
@@ -473,7 +473,7 @@ Annotations:  Spec:
 vmware@master:~$ 
 </code></pre>
 
-### 18.7 Worker 2 EgressDefaultRule Table #60
+### 17.7 Worker 2 EgressDefaultRule Table #60
 
 Table 60 is for isolation rules. Basically when a Kubernetes Network Policy is applied to a pod, the flows which do not match any of the entries in Table 50 will be dropped by Table 60.
 
@@ -488,7 +488,7 @@ vmware@master:~$
 
 **However the current flow is from worker 2 node' s antrea-gw0 interface IP** (10.222.2.1) to frontend pod IP (10.222.1.48). Hence it matches the **last** entry in this table. The last entry has a single action which is handing the flow over to Table 70 (resubmit(,70)). Hence next stop is Table 70.
 
-### 18.8 Worker 2 L3Forwarding Table #70
+### 17.8 Worker 2 L3Forwarding Table #70
 
 The Table 70 on Worker 2 node is shown below.
 
@@ -505,7 +505,7 @@ vmware@master:~$
 
 Basically each flow entry in this flow table checks either the destination IP address or destination MAC address (in some entries both) to make a forwarding decision. 
 
-The current flow' s source and destination MAC and IP address values are still as they are shown back in Section 18.1. Shown below again. 
+The current flow' s source and destination MAC and IP address values are still as they are shown back in Section 17.1. Shown below again. 
 
 - Source IP = 10.222.2.1 (antrea-gw0 interface IP of worker 2 node)
 - Destination IP = 10.222.1.48 (frontend pod IP)
@@ -532,7 +532,7 @@ Based on the current flow' s source and destination MAC/IP values the flow match
 
 **Note 2:** The flow here skips Table 80 (L2 Forwarding) and 90 (Ingress Rules). The OF Port ID of the port which this flow will be sent through is already written to register Reg1 and the ingress rules will be processed at the other end (Worker 1 node) cause the receiving pod is on that node.
 
-### 18.9 Worker 2 ConntrackCommit Table #105
+### 17.9 Worker 2 ConntrackCommit Table #105
 
 Table 105 on Worker 2 node is shown below.
 
@@ -550,7 +550,7 @@ The first flow entry checks whether if the flow is a new flow (+new) and if it i
 
 The second flow entry checks whether if the flow is a new flow (+new) and if it is a tracked flow (+trk). 
 
-The current flow is NOT new and it is TRACKED additionally it is coming from the gateway interface hence its reg0[0..15] was already set to "1" earlier in Table 10 (Section 18.1). So the current flow matches the first flow entry in Table 105. The actions in the first flow entry are as following :
+The current flow is NOT new and it is TRACKED additionally it is coming from the gateway interface hence its reg0[0..15] was already set to "1" earlier in Table 10 (Section 17.1). So the current flow matches the first flow entry in Table 105. The actions in the first flow entry are as following :
 
 - commit this tracked flow to conntrack table and hand it over to Table 110 (actions=ct(commit,table=110..))
 - set the NXM_NX_CT_MARK[] register to 0x20 (load:0x20)
@@ -559,7 +559,7 @@ The next stop is Table 110.
 
 **Note :** NSM_NX_CT_MARK register is used at a later stage for identifying the response from the frontend pod.
 
-### 18.10 Worker 2 L2ForwardingOut Table #110
+### 17.10 Worker 2 L2ForwardingOut Table #110
 
 Table 110 on Worker 2 node is shown below.
 
@@ -585,7 +585,7 @@ The logic of "reg0=-0x10000/0x10000" in the flow entry is that the first 0x10000
 
 So bit 16 must be "1", and that is being verified in "reg0". The first four bits on the left hand side is not worth to mention hence the desired value and actual value are both shown as "0x10000". 
 
-### 18.11 Encapsulation from Worker 2 to Worker 1
+### 17.11 Encapsulation from Worker 2 to Worker 1
 
 When the current flow gets to tunnel0 (genev_sys_6081) interface on Worker 2 node, Linux IP Stack adds the GENEVE headers to the flow with the destination IP address of 10.79.1.201 (which was determined in Table 70) and source IP of 10.79.1.202 which is Worker 2 node IP. Next, the flow is sent through the ens160 interface of the Worker 2 node onwards to the physical network, destined to the Worker 1 node.
 
@@ -607,11 +607,11 @@ The outer source and destination IP/MAC are the ens160 interfaces of the worker 
 
 **Note:** Notice "vni 0x0" that is the actual network ID used in the GENEVE header for this traffic. Apparently no specific ID needs to be used cause OVS keeps track of each flow individually.
 
-### 18.12 Decapsulation on Worker 1
+### 17.12 Decapsulation on Worker 1
 
 When the worker 1 node receives the flow, the Linux IP stack reads the GENEVE header, strips it out and then sends the flow over to the tunnel0 (genev_sys_6081) interface.
 
-At this stage the flow has the following IP/MAC. (they have not changed since Section 18.1)
+At this stage the flow has the following IP/MAC. (they have not changed since Section 17.1)
 
 - Source IP = 10.222.2.1 (antrea-gw0 interface IP of worker 2 node)
 - Destination IP = 10.222.1.48 (frontend pod IP)
@@ -620,7 +620,7 @@ At this stage the flow has the following IP/MAC. (they have not changed since Se
 
 This flow comes ingress to OVS on worker 1 node through the tunnel0 interface. It will be matched against a flow entry in each OVS Table, processed top to bottom in each individual table, based on the priority value of the flow entry in the table.
 
-### 18.13 Worker 1 Classifier Table #0
+### 17.13 Worker 1 Classifier Table #0
 
 Table #0 on Worker 1 node is shown below.
 
@@ -650,7 +650,7 @@ The current flow came from tunnel0 interface hence it matches the second flow en
 
 **Notice that the flow bypasses Spoofguard Table 10.**
 
-### 18.14 Worker 1 Conntrack Table #30
+### 17.14 Worker 1 Conntrack Table #30
 
 Table #30 on Worker 1 node is shown below.
 
@@ -664,7 +664,7 @@ Conntrack table' s job is to start tracking all the traffic. ("ct" action means 
 
 **Note :** Zone ID is explained [here](https://github.com/vmware-tanzu/antrea/blob/master/docs/ovs-pipeline.md#conntracktable-30) as "A ct_zone is simply used to isolate connection tracking rules. It is similar in spirit to the more generic Linux network namespaces, but ct_zone is specific to conntrack and has less overhead." 
 
-### 18.15 Worker 1 ConnTrackState Table #31
+### 17.15 Worker 1 ConnTrackState Table #31
 
 Table #31 on Worker 1 node is shown below.
 
@@ -681,7 +681,7 @@ ConntrackState table processes all the flows that are in tracked state (basicall
 
 The current flow is a completely NEW flow destined to frontend pod. Hence the flow matches the <b>last entry</b> in the flow table highlighted above. Notice the action in the same flow entry is handing the flow over to the next table which is table 40 (resubmit(,40)). So next stop is Table 40.
 
-### 18.16 Worker 1 DNAT Table #40
+### 17.16 Worker 1 DNAT Table #40
 
 Table #40 on Worker 1 node is shown below.
 
@@ -700,7 +700,7 @@ The destination IP of the current flow is frontend pod IP (10.222.1.48) and it d
 
 **Note :** In the OVS Pipeline diagram [here](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_a/README.md#2-ovs-pipeline), there are tables 45,49 before Table50. However those tables are in use only when Antrea Network Policy feature of Antrea is used. In this Antrea environment, it is not used. 
 
-### 18.17 Worker 1 EgressRule Table #50
+### 17.17 Worker 1 EgressRule Table #50
 
 At this stage, the flow is in Table 50. 
 
@@ -731,9 +731,9 @@ The current flow, which is from antrea-gw0 interface IP (of worker 2 node) 10.22
 
 So next stop is Table 60.
 
-**Note :** The current flow has already been processed by Table 50 on worker 2 node (Section 18.6). Hence one may ask "Why the need to process the flow once again by Table 50 on worker1 node ?" This may be considered as a future enhancement.
+**Note :** The current flow has already been processed by Table 50 on worker 2 node (Section 17.6). Hence one may ask "Why the need to process the flow once again by Table 50 on worker1 node ?" This may be considered as a future enhancement.
 
-### 18.18 Worker 1 EgressDefault Table #60
+### 17.18 Worker 1 EgressDefault Table #60
 
 Table 60 on Worker 1 node is shown below. Table 60 is for isolation rules for the pods. Basically when a Kubernetes Network Policy is applied to a pod, the flows (coming from pods) which do not match any of the entries in Table 50 will be dropped by Table 60.
 
@@ -749,7 +749,7 @@ Reason there are two source IPs in two different flow entries here is, there is 
 
 **However the current flow is from worker 2 node' s antrea-gw0 interface IP** (10.222.2.1) to frontend pod IP (10.222.1.48). Hence it will match the **last** entry in this table. The last entry has a single action which is handing the flow over to Table 70 (resubmit(,70)). Hence next stop is Table 70.
 
-### 18.19 Worker 1 L3Forwarding Table #70
+### 17.19 Worker 1 L3Forwarding Table #70
 
 The Table 70 on Worker 1 node is shown below.
 
@@ -768,7 +768,7 @@ vmware@master:~$
 
 Basically each flow entry in this flow table checks either the destination IP address or destination MAC address (in some entries both) to make a forwarding decision.
 
-At this stage the flow has the following IP/MAC. (they have not changed since Section 18.1)
+At this stage the flow has the following IP/MAC. (they have not changed since Section 17.1)
 
 - Source IP = 10.222.2.1 (antrea-gw0 interface IP of worker 2 node)
 - Destination IP = 10.222.1.48 (frontend pod IP)
@@ -787,7 +787,7 @@ Based on the flow' s source and destination MAC/IP values the flow matches the *
 
 Hence next stop is Table 80.
 
-### 18.20 Worker 1 L2ForwardingCalc Table #80
+### 17.20 Worker 1 L2ForwardingCalc Table #80
 
 Table 80 on Worker 1 node is shown below.
 
@@ -821,7 +821,7 @@ Just to emphasize once more, as a result of the actions mentioned in above bulle
 
 **Note :** In the OVS Pipeline diagram [here](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_a/README.md#2-ovs-pipeline), there are tables 85,89 before Table 90. However those tables are in use only when Antrea Network Policy feature of Antrea is used. In this Antrea environment, it is not used.
 
-### 18.21 Worker 1 IngressRule Table #90
+### 17.21 Worker 1 IngressRule Table #90
 
 At this stage, the flow is in Table 90.
 
@@ -924,7 +924,7 @@ The ninth flow entry defines two actions for conjunction 4 as soon as all fields
 
 **Note :** NXM_NX_REG6 register is used to cache the conjunction id which is mapped to the ingress Network Policy Rule in Antrea agent and also then written back to the Antrea custom resource definition in Kubernetes API for another feature of Antrea called "traceflow". More info on it can be found [here](https://github.com/vmware-tanzu/antrea/blob/master/docs/traceflow-guide.md).
 
-**The current flow, which is from antrea-gw0 interface IP of worker 2 node to frontend pod IP on protocol TCP 80, matches conjunction 4 (defined in ninth flow entry) and it will be handed over to Table 105. So next stop is Table 105. (explained in Section 18.22 below)**
+**The current flow, which is from antrea-gw0 interface IP of worker 2 node to frontend pod IP on protocol TCP 80, matches conjunction 4 (defined in ninth flow entry) and it will be handed over to Table 105. So next stop is Table 105. (explained in Section 17.22 below)**
 
 For reference, remaining flow entries are explained below.
 
@@ -946,7 +946,7 @@ Reason there are two different OF port IDs in the first two flow entries here is
 
 The last flow entry in Table 100 basically hands all the flows, which do not match any of the conjunctions in Table 90 or the first flow entries in Table 100, over to the next table - Table 105. 
 
-### 18.22 Worker 1 ConntrackCommit Table #105
+### 17.22 Worker 1 ConntrackCommit Table #105
 
 Table 105 on Worker 1 node is shown below.
 
@@ -968,7 +968,7 @@ In this case the current flow matches this **second** flow entry. It is not comi
 
 So next stop is Table 110.
 
-### 18.23 Worker 1 L2ForwardingOut Table #110
+### 17.23 Worker 1 L2ForwardingOut Table #110
 
 Table 110 on Worker 1 node is shown below.
 
@@ -994,9 +994,9 @@ The logic of "reg0=-0x10000/0x10000" in the flow entry is that the first 0x10000
 
 So bit 16 must be "1", and that is being verified in "reg0". The first four bits on the left hand side is not worth to mention hence the desired value and actual value are both shown as "0x10000".
 
-## 19. Frontend to Client
+## 18. Frontend to Client
 
-A quick tcpdump on frontend pod (while doing "curl 10.79.1.202:32422" on the client) would reveal the headers of both the client request which is just received (explained in the Section 18) and also the response of frontend pod to that request.
+A quick tcpdump on frontend pod (while doing "curl 10.79.1.202:32422" on the client) would reveal the headers of both the client request which is just received (explained in the Section 17) and also the response of frontend pod to that request.
 
 <pre><code>
 vmware@master:~$ k exec frontend -it -- sh
@@ -1022,7 +1022,7 @@ The frontend pod' s response flow has the following content :
 
 This flow comes ingress to OVS on worker 1 node through the frontend pod interface. It will be matched against a flow entry in each OVS Table, processed top to bottom in each individual table, based on the priority value of the flow entry in the table.
 
-### 19.1 Worker 1 Classifier Table #0
+### 18.1 Worker 1 Classifier Table #0
 
 Table #0 on Worker 1 node is shown below.
 
@@ -1047,7 +1047,7 @@ So next stop is Table 10.
 - "0x2" is 2 × (16 to the power of 0) = 2 x 1 = 2 (in decimal)
 - or "0x20" is 2 x (16 to the power of 1) + 0 x (16 to the power of 0) = 32 + 0 = 32 (in decimal)
 
-### 19.2 Worker 1 Spoofguard Table #10
+### 18.2 Worker 1 Spoofguard Table #10
 
 
 Table #10 on Worker 1 node is shown below. "nw_src" refers to the IP address and "dl_src" refers to the MAC address of the pod connected to the respective OF port.
@@ -1072,7 +1072,7 @@ What this table does is verifying if the source IP and MAC of the current flow m
 
 Highlighted lines in the above output are the respective ARP and IP check entries for the OF port which the frontend pod is connected to. The current flow successfully passes the IP and MAC check in the **tenth flow entry**, second line from the bottom. Notice, in the same flow entry, the action is to hand the flow over to Table 30 (actions=resubmit(,30)). Table 30 is the next stop.
 
-### 19.3 Conntrack Table #30
+### 18.3 Worker 1 Conntrack Table #30
 
 Table #30 on Worker 1 node is shown below.
 
@@ -1086,7 +1086,7 @@ vmware@master:~$
 
 **Note :** "Zone" is explained [here](https://github.com/vmware-tanzu/antrea/blob/master/docs/ovs-pipeline.md#conntracktable-30) as following : "A ct_zone is simply used to isolate connection tracking rules. It is similar in spirit to the more generic Linux network namespaces, but ct_zone is specific to conntrack and has less overhead." 
 
-### 19.4 ConntrackState Table #31
+### 18.4 Worker 1 ConntrackState Table #31
 
 Table #31 on Worker 1 node is shown below.
 
@@ -1105,10 +1105,10 @@ The second flow entry checks whether if the flow is not new and tracked ("ct_sta
 
 The third flow entry checks if the flow is INVALID but TRACKED, basically it drops all these types of flows.
 
-The current flow is the response of the frontend pod to the request which is explained in Section 18. It is not a new flow hence one may think that it must match the first or second flow entry (-new+trk); but it does not have its "ct_mark" set nor it is coming from local gateway. It is not an invalid flow either (+inv+trk). Hence the current flow will match the <b>last entry</b> in the flow table highlighted above. Notice the action in that last flow entry is handing the flow over to the next table which is table 40. (resubmit(,40)) Next stop is Table 40.
+The current flow is the response of the frontend pod to the request which is explained in Section 17. It is not a new flow hence one may think that it must match the first or second flow entry (-new+trk); but it does not have its "ct_mark" set nor it is coming from local gateway. It is not an invalid flow either (+inv+trk). Hence the current flow will match the <b>last entry</b> in the flow table highlighted above. Notice the action in that last flow entry is handing the flow over to the next table which is table 40. (resubmit(,40)) Next stop is Table 40.
 
 
-### 19.5 DNAT Table #40
+### 18.5 Worker 1 DNAT Table #40
 
 Table #40 on Worker 1 is shown below.
 
@@ -1127,7 +1127,7 @@ The destination IP of the current flow is antrea-gw0 interface IP of worker 2 no
 
 **Note :** In the OVS Pipeline diagram [here](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_a/README.md#2-ovs-pipeline), there are tables 45,49 before Table50. However those tables are in use only when Antrea Network Policy feature of Antrea is used. In this Antrea environment, it is not used. 
 
-### 19.6 EgressRule Table #50
+### 18.6 Worker 1 EgressRule Table #50
 
 Table 50 on Worker 1 node is shown below. 
 
@@ -1150,11 +1150,11 @@ vmware@master:~$
 
 The first flow entry in Table 50 above checks whether if the flow is an already established flow (-new,+trk); if it is then there is no need to process the flow against network policy, since Kubernetes Network Policy is STATEFUL by nature. 
 
-The current flow is actually the response of frontend pod to the request that is explained in Section 18; because of this reason the current flow is not NEW and it is part of an already ESTABLISHED flow.
+The current flow is actually the response of frontend pod to the request that is explained in Section 17; because of this reason the current flow is not NEW and it is part of an already ESTABLISHED flow.
 
 Hence the current flow will match the first flow entry in this table ("ct_state=-new+est"). The action specified in this first flow entry is handing the flow over to Table 70 (actions=resubmit(,70)). So next stop is Table 70. 
 
-### 19.7 L3Forwarding Table #70
+### 18.7 Worker 1 L3Forwarding Table #70
 
 The Table 70 on Worker 1 node is shown below.
 
@@ -1198,7 +1198,7 @@ Based on the current flow' s destination IP value (10.222.2.1), it matches the *
 
 **Note :** The flow here skips Table 80 (L2 Forwarding) and 90 (Ingress Rules). The OF Port ID of the port which this flow will be sent through is already written to register Reg1 and the ingress rules will be processed at the other end (Worker 2 node) cause the destination is not on this node (worker 1).
 
-### 19.8 ConntrackCommit Table #105
+### 18.8 Worker 1 ConntrackCommit Table #105
 
 Table 105 on Worker 1 node is shown below.
 
@@ -1220,7 +1220,7 @@ The current flow matches the **last/third** flow entry in this table; because it
 
 So next stop is Table 110.
 
-### 19.9 L2ForwardingOut Table #110
+### 18.9 Worker 1 L2ForwardingOut Table #110
 
 Table 110 on Worker 1 node is shown below.
 
@@ -1233,7 +1233,7 @@ vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ov
 vmware@master:~$
 </code></pre>
 
-The value of reg0[16] in the current flow was set to "1" back in L3Forwarding Table #70 (Section 19.7). The value of REG1 in the current flow was set to "0x1" (which is "1" in decimal) also back in L3Forwarding Table #70. "1" is the OF Port ID of tunnel0 interface (genev_sys_6081 interface on Linux). **Hence the OVS sends the current flow onwards to the tunnel0 interface.**
+The value of reg0[16] in the current flow was set to "1" back in L3Forwarding Table #70 (Section 18.7). The value of REG1 in the current flow was set to "0x1" (which is "1" in decimal) also back in L3Forwarding Table #70. "1" is the OF Port ID of tunnel0 interface (genev_sys_6081 interface on Linux). **Hence the OVS sends the current flow onwards to the tunnel0 interface.**
 
 **Note :** The second flow entry in this table obviously drops the flows which do not have their "reg0[16]" register set.
 
@@ -1246,9 +1246,9 @@ The logic of "reg0=-0x10000/0x10000" in the flow entry is that the first 0x10000
 
 So bit 16 must be "1", and that is being verified in "reg0". The first four bits on the left hand side is not worth to mention hence the desired value and actual value are both shown as "0x10000".
 
-### 19.10 Encapsulation from Worker 1 to Worker 2
+### 18.10 Encapsulation from Worker 1 to Worker 2
 
-When the current flow gets to tunnel0 (genev_sys_6081) interface on Worker 1 node, Linux IP stack adds the GENEVE headers to the flow with the destination IP address of 10.79.1.202 (which was determined in Table 70 back in Section 19.7 earlier) and source IP of 10.79.1.201 which is Worker 1 node IP. **Next, the flow is sent through the ens160 interface of the Worker 1 node onwards to the physical network, destined to the Worker 2 node.**
+When the current flow gets to tunnel0 (genev_sys_6081) interface on Worker 1 node, Linux IP stack adds the GENEVE headers to the flow with the destination IP address of 10.79.1.202 (which was determined in Table 70 back in Section 18.7 earlier) and source IP of 10.79.1.201 which is Worker 1 node IP. **Next, the flow is sent through the ens160 interface of the Worker 1 node onwards to the physical network, destined to the Worker 2 node.**
 
 To verify how Worker 1 node encapsulates the flows, a quick tcpdump on the Worker 1 node ens160 interface on UDP 6081, which is GENEVE port, would reveal the source and destination IP/MAC of this flow. 
 
@@ -1273,7 +1273,7 @@ The source and destination IP/MAC are the ens160 interfaces of the Worker 1 and 
 
 **Note:** Notice "vni 0x0" that is the actual network ID used in the GENEVE header for this traffic. Apparently no specific ID needs to be used cause OVS keeps track of each flow individually.
 
-### 19.11 Decapsulation on Worker 2
+### 18.11 Decapsulation on Worker 2
 
 When the worker  node receives the flow, the Linux IP stack reads the GENEVE header, strips it out and then sends the flow over to the tunnel0 (genev_sys_6081) interface.
 
@@ -1286,7 +1286,7 @@ At this stage the flow has the following IP/MAC.
 
 This flow comes ingress to OVS on worker 2 node through the tunnel0 interface. It will be matched against a flow entry in each OVS Table, processed top to bottom in each individual table, based on the priority value of the flow entry in the table.
 
-### 19.12 Worker 2 Classifier Table #0
+### 18.12 Worker 2 Classifier Table #0
 
 Table #0 on Worker 2 node is shown below.
 
@@ -1314,7 +1314,7 @@ The current flow came from tunnel0 interface hence it matches the **second** flo
 
 **Notice that the flow bypasses Spoofguard Table 10.**
 
-### 19.13 Worker 2 Conntrack Table #30
+### 18.13 Worker 2 Conntrack Table #30
 
 Table #30 on Worker 2 node is shown below.
 
@@ -1328,7 +1328,7 @@ Conntrack table' s job is to start tracking all the traffic. ("ct" action means 
 
 **Note :** Zone ID is explained [here](https://github.com/vmware-tanzu/antrea/blob/master/docs/ovs-pipeline.md#conntracktable-30) as "A ct_zone is simply used to isolate connection tracking rules. It is similar in spirit to the more generic Linux network namespaces, but ct_zone is specific to conntrack and has less overhead." 
 
-### 19.14 Worker 2 ConntracState Table #31
+### 18.14 Worker 2 ConntracState Table #31
 
 Table #31 on Worker 2 node is shown below. 
 
@@ -1344,11 +1344,11 @@ vmware@master:~$
 
 ConntrackState table processes all the flows that are in tracked state (basically which were handed over by the Conntrack table 30). The first and second flow entries shown above process the flows where the flow is NOT new AND tracked. (ct_state=-new means not new, +trk means being tracked) The third flow entry processes the flows where the respective flow is INVALID and TRACKED, basically it drops all those flows.
 
-The current flow is NOT new (-new) and it is a tracked flow (+trk). It also has its "ct_mark" set to "0x20" all the way back in Section 18.9. Hence the current flow matches the <b>second</b> entry in the flow table highlighted above. There are two actions specified in that flow entry. First action is to change the destination MAC address of the flow to "2d84e3f921d" (by load:0x2d84e3f921d->NXM_OF_ETH_DST[]) which is antrea-gw0 interface MAC of worker 2 node. Second action is to hand the flow over to the next table which is table 40 (resubmit(,40)). So next stop is Table 40.
+The current flow is NOT new (-new) and it is a tracked flow (+trk). It also has its "ct_mark" set to "0x20" all the way back in Section 17.9. Hence the current flow matches the <b>second</b> entry in the flow table highlighted above. There are two actions specified in that flow entry. First action is to change the destination MAC address of the flow to "2d84e3f921d" (by load:0x2d84e3f921d->NXM_OF_ETH_DST[]) which is antrea-gw0 interface MAC of worker 2 node. Second action is to hand the flow over to the next table which is table 40 (resubmit(,40)). So next stop is Table 40.
 
-**Note :** For the intrigued, the destination IP of the current flow is already set as antrea-gw0 interface IP of worker 2 node (from Section 18), so why the MAC address rewrite ? Remember from PART B and PART C of this article series that the "ct_mark" field is mainly used for service to backend pod traffic but more generally it is used to make sure that any flow that is originally sent by the antrea-gw0 interface on the node to be sent back to the requestor through the same antrea-gw0 interface. In this case, although this flow would certainly go back to the requestor through the antrea-gw0 interface anyway, as part of the "ct_mark" field usage the flow' s destination MAC address gets rewritten by this table. 
+**Note :** For the intrigued, the destination IP of the current flow is already set as antrea-gw0 interface IP of worker 2 node (from Section 17), so why the MAC address rewrite ? Remember from PART B and PART C of this article series that the "ct_mark" field is mainly used for service to backend pod traffic but more generally it is used to make sure that any flow that is originally sent by the antrea-gw0 interface on the node to be sent back to the requestor through the same antrea-gw0 interface. In this case, although this flow would certainly go back to the requestor through the antrea-gw0 interface anyway, as part of the "ct_mark" field usage the flow' s destination MAC address gets rewritten by this table. 
 
-### 19.15 Worker 2 DNAT Table #40
+### 18.15 Worker 2 DNAT Table #40
 
 Table #40 on Worker 2 node is shown below.
 
@@ -1367,7 +1367,7 @@ The destination IP of the current flow is antrea-gw0 interface IP 10.222.2.1 (of
 
 **Note :** In the OVS Pipeline diagram [here](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_a/README.md#2-ovs-pipeline), there are tables 45,49 before Table50. However those tables are in use only when Antrea Network Policy feature of Antrea is used. In this Antrea environment, it is not used. 
 
-### 19.16 Worker 2 EgressRule Table #50
+### 18.16 Worker 2 EgressRule Table #50
 
 At this stage, the flow is in Table 50. 
 
@@ -1384,13 +1384,13 @@ vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-fv5x9 -c antrea-ov
 vmware@master:~$ 
 </code></pre>
 
-The current flow is actually the response of frontend pod to the request that is explained in Section 18; because of this reason the current flow is not NEW and it is part of an already ESTABLISHED flow.
+The current flow is actually the response of frontend pod to the request that is explained in Section 17; because of this reason the current flow is not NEW and it is part of an already ESTABLISHED flow.
 
 Hence the current flow will match the first flow entry in this table ("ct_state=-new+est"). The action specified in this first flow entry is handing the flow over to Table 70 (actions=resubmit(,70)). So next stop is Table 70. 
 
-**Note :** The current flow has already been processed by Table 50 on worker 1 node (Section 18.6). Hence one may ask "Why the need to process the flow once again by Table 50 on worker1 node ?" This may be considered as a future enhancement.
+**Note :** The current flow has already been processed by Table 50 on worker 1 node (Section 17.6). Hence one may ask "Why the need to process the flow once again by Table 50 on worker1 node ?" This may be considered as a future enhancement.
 
-### 19.17 Worker 2 L3Forwarding Table #70
+### 18.17 Worker 2 L3Forwarding Table #70
 
 The Table 70 on Worker 2 node is shown below.
 
@@ -1407,7 +1407,7 @@ vmware@master:~$
 
 Basically each flow entry in this flow table checks either the destination IP address or destination MAC address (in some entries both) to make a forwarding decision. 
 
-The current flow' s source and destination MAC and IP address values are as below. The only difference between the beginning of this Section 19 and now is the destination MAC rewrite which has been performed back in Section 19.14. 
+The current flow' s source and destination MAC and IP address values are as below. The only difference between the beginning of this Section 18 and now is the destination MAC rewrite which has been performed back in Section 18.14. 
 
 - Source IP = 10.222.1.48 (frontend pod IP)
 - Destination IP = 10.222.2.1 (antrea-gw0 interface IP of worker 2 node)
@@ -1416,7 +1416,7 @@ The current flow' s source and destination MAC and IP address values are as belo
 
 Based on the current flow' s source and destination MAC/IP values the flow matches the <b>last</b> flow entry in Table 70, since the destination IP/MAC does not match any of the other flow entries. The only action in that last flow entry is to hand the flow over to Table 80 (resubmit(,80)). So next stop is Table 80.
 
-### 19.18 Worker 2 L2ForwardingCalc Table #80
+### 18.18 Worker 2 L2ForwardingCalc Table #80
 
 Table 80 on Worker 2 node is shown below.
 
@@ -1448,7 +1448,7 @@ Just to emphasize once more, as a result of the actions mentioned in above bulle
 
 **Note :** In the OVS Pipeline diagram [here](https://github.com/dumlutimuralp/antrea-packet-walks/blob/master/part_a/README.md#2-ovs-pipeline), there are tables 85,89 before Table 90. However those tables are in use only when Antrea Network Policy feature of Antrea is used. In this Antrea environment, it is not used. 
 
-### 19.19 Worker 2 IngressRule Table #90
+### 18.19 Worker 2 IngressRule Table #90
 
 At this stage, the flow is in Table 90.
 
@@ -1466,11 +1466,11 @@ vmware@master:~$
 
 Table 90 flow entries correspond to the ingress rules configured in Kubernetes Network Policy "backendpolicy". Cause there is only backend2 pod on the Worker 2 node.
 
-The current flow is actually the response of frontend pod to the request that is explained in Section 18; because of this reason the current flow is not NEW and it is part of an already ESTABLISHED flow.
+The current flow is actually the response of frontend pod to the request that is explained in Section 17; because of this reason the current flow is not NEW and it is part of an already ESTABLISHED flow.
 
 Hence the current flow will match the first flow entry in this table ("ct_state=-new+est"). The action specified in this first flow entry is handing the flow over to Table 100 (actions=resubmit(,100)). So next stop is Table 100. 
 
-### 19.20 Worker 2 IngressRule Table #100
+### 18.20 Worker 2 IngressRule Table #100
 
 The Table 100 on Worker 2 node is shown below.
 
@@ -1489,7 +1489,7 @@ The current flow' s destination is antrea-gw0 port on OVS (OF port id of "2", "0
 
 So next stop is Table 105.
 
-### 19.21 Worker 2 ConntrackCommit Table #105
+### 18.21 Worker 2 ConntrackCommit Table #105
 
 Table 105 on Worker 2 node is shown below.
 
@@ -1507,9 +1507,9 @@ The first flow entry checks whether if the flow is a new flow (+new) and if it i
 
 The second flow entry checks whether if the flow is a new flow (+new) and if it is a tracked flow (+trk).
 
-In this case the current flow is NOT a new flow. It is the response of frontend pod to the previous request that is explained in Section 18; it is part of an already established flow which is being tracked (previously from Conntrack Table 30 and 31). Hence it matches the **last** flow entry in this table. The only action in that flow entry is to hand the flow over to Table 110 (resubmit(,110)). So next stop is Table 110.
+In this case the current flow is NOT a new flow. It is the response of frontend pod to the previous request that is explained in Section 17; it is part of an already established flow which is being tracked (previously from Conntrack Table 30 and 31). Hence it matches the **last** flow entry in this table. The only action in that flow entry is to hand the flow over to Table 110 (resubmit(,110)). So next stop is Table 110.
 
-### 19.22 Worker 2 L2ForwardingOut Table #110
+### 18.22 Worker 2 L2ForwardingOut Table #110
 
 Table 110 on Worker 2 node is shown below.
 
@@ -1535,7 +1535,7 @@ The logic of "reg0=-0x10000/0x10000" in the flow entry is that the first 0x10000
 
 So bit 16 must be "1", and that is being verified in "reg0". The first four bits on the left hand side is not worth to mention hence the desired value and actual value are both shown as "0x10000".
 
-### 19.23 Worker 2 Iptables
+### 18.23 Worker 2 Iptables
 
 Once the worker 2 node' s antrea-gw0 interface receives this flow that means Linux IP stack will process it.
 
@@ -1546,7 +1546,7 @@ The current flow has the following content in its IP/MAC values.
 - Source MAC = 4e:99:08:c1:53:be (antrea-gw0 interface MAC of worker 1 node)
 - Destination MAC = 02:d8:4e:3f:92:1d (antrea-gw0 interface MAC of worker 2 node)
 
-The Linux iptables NAT rules on worker 2 node were shown back in Section 18.1. So iptables already has the the state information about this flow and identifies that it is actually the response flow to the original request explained in Section 18. Hence this time iptables applies both DNAT and SNAT to the flow and the flow becomes : 
+The Linux iptables NAT rules on worker 2 node were shown back in Section 17.1. So iptables already has the the state information about this flow and identifies that it is actually the response flow to the original request explained in Section 17. Hence this time iptables applies both DNAT and SNAT to the flow and the flow becomes : 
 
 - Source IP = 10.79.1.202 (Worker 2 node IP)
 - Destination IP = 172.16.100.2 (Client IP)
