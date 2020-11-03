@@ -341,6 +341,8 @@ What is shown above is, frontend pod initiates a request on TCP port 80 to backe
 
 **Note :** In order for frontend pod to send a request to backendsvc service on its IP, it actually sends a DNS request to Kubernetes DNS service. This DNS flow, which happens to take place before the actual requst on TCP port 80, is not the focus of this article. Assumption will be frontend pod already resolved the backendsvc IP through Kubernetes DNS.
 
+** Note 2:** In the yaml file shown above, everything kept extremely simple down to the level of pinning a specific pode to a specific worker node. For that reason "Nodename" is used in the yaml. Hence in order to use the same yaml file nodename values need to be edited accordingly to match the actual environment' s Kubernetes node names.
+
 ## 3.3 Identifying Antrea Agent Pods
 
 To be able to investigate the flow entries on the Open vSwitch (OVS) on the Worker nodes, first the Antrea agent pods need to be identified in the environment. Antrea OVS container running within Antrea agent pod runs OVS daemons and the OVS commands will be executed in that container in the next few sections.
