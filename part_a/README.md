@@ -498,8 +498,16 @@ OFPT_GET_CONFIG_REPLY (xid=0x4): frags=normal miss_send_len=0
 vmware@master:~/article_antrea$ 
 </code></pre> 
 
-**Note1** : The MAC addresses shown next to each OF Port is the MAC of the port , not the MAC of the Pod connected to that OF port. 
+**Note1 :** The MAC addresses shown next to each OF Port is the MAC of the port , not the MAC of the Pod connected to that OF port. 
 
-**Note2**: To identify the MAC of the Pod, either :
+**Note2 :** To identify the MAC of the Pod, either :
 - "kubectl exec -it <PODNAME> -- sh" and then "ip link" command can be used 
 - or later on Spoofguard table (Table #10) will be used to identify the Pod MAC. At this stage, for completeness of the diagram shown earlier, "kubectl exec ..." command is used. 
+    
+## 3.5 Enhanced Commands 
+
+In the following sections many "kubectl exec -n kube-system -it <ANTREA-AGENT-POD-NAME> -c antrea-ovs -- ovs-ofctl dump-flows br-int table=<TABLE_ID> --no-stats" commands are used to list the flow entries in a given OVS table. 
+    
+In the recent release of simpler commands can be used. For instance instead of the above command, "kubectl exec -n kube-system -it <ANTREA-AGENT-POD-NAME> antctl get ovsflows -T <TABLE_ID>" can be leveraged. 
+    
+**Note :** "antctl get -h" can be used to see the other options. 
