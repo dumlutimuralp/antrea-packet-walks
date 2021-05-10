@@ -128,7 +128,7 @@ There is optimum ARP traffic behaviour involved in this implementation and that 
 
 Based on all the above information, looking back at the frontend pod on worker1 to backend2 pod on worker2 flow, when the flow comes to the OVS on worker2 node, Table 70 on worker2 actually checks the MAC "aa:bb:cc:dd:ee:ff" (alongside the backend2 pod IP). To review that specific step, Section 9.11.6 can be revisited again. 
 
-**To summarize the flow entries in Table 20 on worker1 node: ** 
+**To summarize the flow entries in Table 20 on worker1 node:** 
 
 <pre><code>
 vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ovs -- ovs-ofctl dump-flows br-int table=20 --no-stats
