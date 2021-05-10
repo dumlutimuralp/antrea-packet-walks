@@ -9,7 +9,7 @@ The related part in the OVS pipeline diagram (below) shows the steps related to 
 Any flow that comes ingress to OVS through a local port would be first subject to spoofguard check (Table 10) and if it is an ARP flow then it is handed over to Table 20. A quick review of Table 10 (below) on worker1 node verifies it.
 
 <pre><code>
-vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ovs -- ovs-ofctl dump-flows br-int <b>table=10</b> --no-stats
+vmware@worker1:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ovs -- ovs-ofctl dump-flows br-int <b>table=10</b> --no-stats
  cookie=0x1000000000000, table=10, priority=200,ip,in_port="antrea-gw0" actions=resubmit(,30)
  cookie=0x1000000000000, table=10, priority=200,<b>arp</b>,in_port="antrea-gw0",arp_spa=10.222.1.1,arp_sha=4e:99:08:c1:53:be <b>actions=resubmit(,20)</b>
  cookie=0x1030000000000, table=10, priority=200,<b>arp</b>,in_port="coredns--3e3abf",arp_spa=10.222.1.2,arp_sha=f2:82:cc:96:da:bd <b>actions=resubmit(,20)</b>
@@ -21,7 +21,7 @@ vmware@master:~$ kubectl exec -n kube-system -it antrea-agent-f76q2 -c antrea-ov
  cookie=0x1030000000000, table=10, priority=200,ip,in_port="backend1-bab86f",dl_src=f2:32:d8:07:e2:a6,nw_src=10.222.1.47 actions=resubmit(,30)
  cookie=0x1030000000000, table=10, priority=200,ip,in_port="frontend-a3ba2f",dl_src=be:2c:bf:e4:ec:c5,nw_src=10.222.1.48 actions=resubmit(,30)
  cookie=0x1000000000000, table=10, priority=0 actions=drop
-vmware@master:~$ 
+vmware@worker1:~$ 
 </code></pre>
 
 Highlighted flow entries in the output above prove that if the flow is an ARP flow and also if the source IP/MAC in the ARP header matches the endpoint which is connected to that OVS port, then the flow gets handed over to Table 20, which is the ArpResponder table.
