@@ -74,7 +74,7 @@ When the flow from 10.222.1.48 (frontend pod) to 10.222.2.34 (backend2 pod) need
 
 The third route entry, "10.222.0.0/24 via 10.222.0.1 dev antrea-gw0 onlink", is for the pod subnet on the other Kubernetes node, which is the master node. All the things mentioned above would apply for this route entry as well.
 
-Whenever a new node is added to the Kubernetes cluster, Antrea Node Controller would detect that by watching the Kubernetes API and then add a route entry, similar to the ones above, on worker1 node' s route table. (Explained [here](https://github.com/vmware-tanzu/antrea/blob/main/docs/design/architecture.md#antrea-agent)
+Whenever a new node is added to the Kubernetes cluster, Antrea Node Controller would detect that by watching the Kubernetes API and then add a route entry, similar to the ones above, on worker1 node' s route table. (Explained [here](https://github.com/vmware-tanzu/antrea/blob/main/docs/design/architecture.md#antrea-agent))
 
 Until now, the reason why a node would send an ARP request for another node' s gw0 interface IP is explained above. **What about OVS ? How does it handle these ARP requests ?** For that, focusing on the Table 20 again, the second flow entry is explained in more detail now, as below.
 
